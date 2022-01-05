@@ -1,0 +1,15 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TaskAssembly>Aardvark.Build.dll</TaskAssembly>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Aardvark.Build.NativeTask" AssemblyFile="$(TaskAssembly)" />
+  <Target Name="InjectNativeDependencies" DependsOnTargets="Compile" BeforeTargets="CopyFilesToOutputDirectory"> 
+    <NativeTask
+      DesignTime="$(DesignTimeBuild)"
+      Assembly="@(IntermediateAssembly)"
+      AssemblyName="$(AssemblyName)"
+      OutputPath="$(OutputPath)"
+    />
+  </Target>
+</Project>

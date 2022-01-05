@@ -1,0 +1,7 @@
+/.paket
+/packages
+/paket-files
+obj/
+/bin
+/pack
+.DS_Store
