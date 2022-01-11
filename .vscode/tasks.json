@@ -9,6 +9,7 @@
             "type": "shell",
             "args": [
                 "build",
+                "Aardvark.Build/Aardvark.Build.fsproj",
                 // Ask dotnet build to generate full paths for file names.
                 "/property:GenerateFullPaths=true",
                 // Do not generate summary otherwise it leads to duplicate errors in Problems panel
@@ -16,9 +17,61 @@
             ],
             "group": "build",
             "presentation": {
-                "reveal": "silent"
+                "reveal": "always"
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build-test",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "build",
+                "Test/Test.fsproj",
+                "--no-dependencies",
+                // Ask dotnet build to generate full paths for file names.
+                "/property:GenerateFullPaths=true",
+                // Do not generate summary otherwise it leads to duplicate errors in Problems panel
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "dependsOn": [
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "pack-test",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "pack",
+                "Test/Test.fsproj"
+            ],
+            "dependsOn": [
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "install",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "paket",
+                "install"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            }
         }
     ]
 }

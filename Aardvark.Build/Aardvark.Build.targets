@@ -1,15 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <TaskAssembly>Aardvark.Build.dll</TaskAssembly>
-  </PropertyGroup>
+  <UsingTask TaskName="Aardvark.Build.ReleaseNotesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
+  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild"> 
+    <ReleaseNotesTask DesignTime="$(DesignTimeBuild)" RepositoryRoot="$(RepositoryRoot)" ProjectPath="$(MSBuildProjectFullPath)">
+      <Output TaskParameter="NugetVersion" PropertyName="NugetVersion"/>
+      <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion"/>
+      <Output TaskParameter="ReleaseNotes" PropertyName="ReleaseNotes"/>
+    </ReleaseNotesTask>
+    <PropertyGroup>
+      <Version Condition="'$(AssemblyVersion)' != ''">$(AssemblyVersion)</Version>
+      <AssemblyVersion Condition="'$(AssemblyVersion)' != ''">$(AssemblyVersion)</AssemblyVersion>
+      <FileVersion Condition="'$(AssemblyVersion)' != ''">$(AssemblyVersion)</FileVersion>
+      <InformationalVersion Condition="'$(AssemblyVersion)' != ''">$(AssemblyVersion)</InformationalVersion>
+      <PackageVersion Condition="'$(NugetVersion)' != ''">$(NugetVersion)</PackageVersion>
+      <PackageReleaseNotes Condition="'$(PackageReleaseNotes)' != ''">$(PackageReleaseNotes)</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
 
-  <UsingTask TaskName="Aardvark.Build.NativeTask" AssemblyFile="$(TaskAssembly)" />
+  <UsingTask TaskName="Aardvark.Build.NativeDependencyTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
   <Target Name="InjectNativeDependencies" DependsOnTargets="Compile" BeforeTargets="CopyFilesToOutputDirectory"> 
-    <NativeTask
+    <NativeDependencyTask
       DesignTime="$(DesignTimeBuild)"
       Assembly="@(IntermediateAssembly)"
       AssemblyName="$(AssemblyName)"
       OutputPath="$(OutputPath)"
+      RepositoryRoot="$(RepositoryRoot)"
+      ProjectPath="$(MSBuildProjectFullPath)"
     />
   </Target>
+
+
+  <UsingTask TaskName="Aardvark.Build.OverrideNuspecTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
+  <Target Name="NewNuspec" DependsOnTargets="Compile" AfterTargets="GenerateNuspec;PaketOverrideNuspec"> 
+    <OverrideNuspecTask
+      DesignTime="$(DesignTimeBuild)"
+      Assembly="@(IntermediateAssembly)"
+      RepositoryRoot="$(RepositoryRoot)"
+      ProjectPath="$(MSBuildProjectFullPath)"
+      Configuration="$(Configuration)"
+      AssemblyName="$(AssemblyName)"
+      OutputPath="$(OutputPath)"
+
+      PackageVersion="$(PackageVersion)"
+      PackageId="$(PackageId)"
+      PackageAuthors="$(Authors)"
+      PackageReleaseNotes="$(PackageReleaseNotes)"
+      PackageDescription="$(Description)"
+      ProjectReferences="@(ProjectReference)"
+    />
+  </Target>
+
+
 </Project>

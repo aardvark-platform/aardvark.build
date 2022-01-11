@@ -174,3 +174,93 @@ module Native =
             "mac"
         else
             "unknown"
+
+
+
+
+module Tools =
+    let private libDirNames = ["lib"; "libs"]
+
+    let private projectRootIndicators =
+        let inline regex pat =
+            System.Text.RegularExpressions.Regex("^" + pat + "$", Text.RegularExpressions.RegexOptions.IgnoreCase)
+        List.map regex [
+            "license(\.md)?"
+            "readme(\.md)?"
+            "paket\.dependencies"
+            "build\.(cmd|bat|ps1|sh)"
+        ]
+
+    let private releaseNotesRx =
+        System.Text.RegularExpressions.Regex(@"^release(_|-)?notes(\.md)?$", Text.RegularExpressions.RegexOptions.IgnoreCase)
+
+    let rec findProjectRoot (path : string) =
+        try
+            if Directory.Exists path then 
+                if Directory.Exists (Path.Combine(path, ".git")) then
+                    Some path
+                else
+                    let files = Directory.GetFiles(path, "*")
+                    let isRoot =
+                        files |> Array.exists (fun file ->
+                            let name = Path.GetFileName file
+                            projectRootIndicators |> List.exists (fun r -> r.IsMatch name)
+                        )
+
+                    if isRoot then
+                        Some path
+                    else
+                        let parent = Directory.GetParent path
+                        if isNull parent then None
+                        else findProjectRoot parent.FullName
+            else
+                None
+        with _ ->   
+            None
+
+    let isReleaseNotesFile (path : string) =
+        let name = Path.GetFileNameWithoutExtension(path).ToLower()
+        releaseNotesRx.IsMatch name
+
+    let rec findLibs (path : string) =
+        let found =
+            libDirNames |> List.tryPick (fun l ->   
+                let p = Path.Combine(path, l, "Native")
+                try if Directory.Exists p then Some p else None
+                with _ -> None
+            )
+        match found with
+        | Some path -> Some path
+        | None ->  
+            try
+                let parent = Path.GetDirectoryName path
+                if isNull parent then None
+                else findLibs parent
+            with _ ->   
+                None
+
+
+module Symlink =
+    open System.Runtime.InteropServices
+
+    module Mac =
+        [<DllImport("libc")>]
+        extern int symlink(string src, string linkName);
+
+    module Linux =
+        [<DllImport("libc")>]
+        extern int symlink(string src, string linkName);
+
+    let symlink (src : string) (name : string) =
+        if File.Exists name then File.Delete name
+        if RuntimeInformation.IsOSPlatform OSPlatform.Linux then 
+            let ret = Linux.symlink(src, name)
+            if ret <> 0 then Result.Error $"could not create symlink {name} {ret}"
+            else Ok()
+        elif RuntimeInformation.IsOSPlatform OSPlatform.OSX then 
+            let ret = Mac.symlink(src, name)
+            if ret <> 0 then Result.Error $"could not create symlink {name} {ret}"
+            else Ok()
+        else 
+            Error "symlinks not supported on Windows"
+

@@ -8,66 +8,21 @@ open System.Threading
 open Aardvark.Build
 open System.Xml
 open System.Xml.Linq
-
-module Tools =
-    let libDirNames = ["lib"; "libs"]
-
-    let isGitRepo (path : string) =
-        try Directory.Exists (Path.Combine(path, ".git"))
-        with _ -> false
-
-    let rec findLibs (path : string) =
-        let found =
-            libDirNames |> List.tryPick (fun l ->   
-                let p = Path.Combine(path, l, "Native")
-                try if Directory.Exists p then Some p else None
-                with _ -> None
-            )
-        match found with
-        | Some path -> Some path
-        | None ->  
-            try
-                let parent = Path.GetDirectoryName path
-                if isNull parent then None
-                else findLibs parent
-            with _ ->   
-                None
-
-
-module Symlink =
-    open System.Runtime.InteropServices
-
-    module Mac =
-        [<DllImport("libc")>]
-        extern int symlink(string src, string linkName);
-
-    module Linux =
-        [<DllImport("libc")>]
-        extern int symlink(string src, string linkName);
-
-    let symlink (src : string) (name : string) =
-        if File.Exists name then File.Delete name
-        if RuntimeInformation.IsOSPlatform OSPlatform.Linux then 
-            let ret = Linux.symlink(src, name)
-            if ret <> 0 then Result.Error $"could not create symlink {name} {ret}"
-            else Ok()
-        elif RuntimeInformation.IsOSPlatform OSPlatform.OSX then 
-            let ret = Mac.symlink(src, name)
-            if ret <> 0 then Result.Error $"could not create symlink {name} {ret}"
-            else Ok()
-        else 
-            Error "symlinks not supported on Windows"
+open Paket
+open Paket.Core
+open Paket.Domain
 
 
 
-
-type NativeTask() =
+type NativeDependencyTask() =
     inherit Task()
 
+    let mutable repoRoot = ""
     let mutable designTime = false
     let mutable assembly = ""
     let mutable assemblyName = ""
     let mutable outputPath = ""
+    let mutable projectPath = ""
 
     let mutable cancel : CancellationTokenSource = null
 
@@ -138,30 +93,46 @@ type NativeTask() =
         if designTime then
             true
         else
+            let projDir = Path.GetDirectoryName projectPath
+            let root =
+                if System.String.IsNullOrWhiteSpace repoRoot then Tools.findProjectRoot projDir
+                elif Directory.Exists repoRoot then Some repoRoot
+                else None
+
             let libs = 
-                match Tools.findLibs Environment.CurrentDirectory with
-                | Some dir -> 
-                    let dir = Path.Combine(dir, assemblyName)
-                    if Directory.Exists dir then Some dir
-                    else None
+                match root with
+                | Some root ->  
+                    let inline isLibDir (path : string) =
+                        let name = Path.GetFileName(path).ToLower()
+                        if name = "lib" || name = "libs" then
+                            Directory.Exists (Path.Combine(path, "Native"))
+                        else
+                            false
+                    match Directory.GetDirectories(root, "*") |> Array.tryFind isLibDir with
+                    | Some libs -> 
+                        let dir = Path.Combine(libs, "Native", assemblyName)
+                        if Directory.Exists dir then Some dir
+                        else None
+                    | None ->
+                        None
                 | None ->
+                    x.Log.LogWarning "Could not find repository root (please specify RepositoryRoot Property)"
                     None
 
             match libs with
             | Some libs ->
-
                 cancel <- new CancellationTokenSource()
                 try
                     let assemblyPath = 
-                        Path.Combine(Environment.CurrentDirectory, assembly)
+                        Path.Combine(projDir, assembly)
                         |> Path.GetFullPath
 
                     let outputPath =
-                        Path.Combine(Environment.CurrentDirectory, outputPath)
+                        Path.Combine(projDir, outputPath)
                         |> Path.GetFullPath
                         
                     Assembly.addNativeZip cancel.Token libs assemblyPath
-                    x.CopyNative(libs, outputPath)
+                    //x.CopyNative(libs, outputPath)
                     x.Remapping(libs, outputPath)
 
 
@@ -176,11 +147,20 @@ type NativeTask() =
             | None ->
                 x.Log.LogMessage($"no libs found for {assemblyName}")
                 true
-          
+
     member x.DesignTime
         with get() = designTime
         and set d = designTime <- d
-         
+
+    member x.RepositoryRoot
+        with get() = repoRoot
+        and set r = repoRoot <- r
+
+    [<Required>]
+    member x.ProjectPath
+        with get() = projectPath
+        and set p = projectPath <- p
+
     [<Required>]
     member x.Assembly
         with get() = assembly
