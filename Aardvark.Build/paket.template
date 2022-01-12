@@ -5,6 +5,10 @@ description Aardvark Native Build Helper
 developmentDependency true
 files
   ../bin/Release/netstandard2.0/FSharp.Core.dll ==> build
+  ../bin/Release/netstandard2.0/Fake.Core.SemVer.dll ==> build
+  ../bin/Release/netstandard2.0/Fake.Core.ReleaseNotes.dll ==> build
+  ../bin/Release/netstandard2.0/Fake.Core.String.dll ==> build
+  ../bin/Release/netstandard2.0/Paket.Core.dll ==> build
   ../bin/Release/netstandard2.0/ICSharpCode.SharpZipLib.dll ==> build
   ../bin/Release/netstandard2.0/Microsoft.Build.Framework.dll ==> build
   ../bin/Release/netstandard2.0/Microsoft.Build.Tasks.Core.dll ==> build
