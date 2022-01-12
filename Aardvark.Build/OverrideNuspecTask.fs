@@ -25,25 +25,9 @@ type OverrideNuspecTask() as this =
     let mutable projectReferences = Array.empty<string>
 
     let mutable packageVersion = ""
-    let mutable packageId = ""
-    let mutable packageAuthors = ""
     let mutable packageReleaseNotes = ""
-    let mutable packageDescription = ""
     
     do Tools.boot this.Log
-
-
-    member x.PackageDescription
-        with get() = packageDescription
-        and set d = packageDescription <- d
-
-    member x.PackageAuthors
-        with get() = packageAuthors
-        and set d = packageAuthors <- d
-
-    member x.PackageId
-        with get() = packageId
-        and set d = packageId <- d
 
     member x.PackageReleaseNotes
         with get() = packageReleaseNotes
@@ -147,101 +131,99 @@ type OverrideNuspecTask() as this =
                             )
                         )
 
-                    let nuspec = Path.ChangeExtension(assemblyPath, ".nuspec")
-
                     let name = Path.GetFileNameWithoutExtension assemblyName
                     let nuspecPath =
                         Path.Combine(Path.GetDirectoryName(assemblyPath), "..", sprintf "%s.%s.nuspec" name packageVersion)
                         |> Path.GetFullPath
 
-                    let dllName = Path.GetFileName assemblyName + ".dll"
 
-                    let dllPath =
-                        Path.Combine(projDir, outputPath, Path.GetFileName assemblyName + ".dll")
-                        |> Path.GetFullPath
+                    let nuspec = XDocument.Load nuspecPath
 
+                    let deps = 
+                        let inline name n =
+                            XName.Get(n, "http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd")
+                        nuspec
+                            .Descendants(name "package")
+                            .Descendants(name "metadata")
+                            .Descendants(name "dependencies")
+                            .Descendants(name "group")
+                            .Descendants(name "dependency") |> Seq.toArray
 
-                    let framework =
-                        Path.GetFileName(Path.GetDirectoryName dllPath)
+                    let versions = 
+                        let mutable res = Map.ofList dependencies
+                        for p in projectReferences do
+                            let name = Path.GetFileNameWithoutExtension p |> PackageName
+                            res <- Map.add name $"[{packageVersion}]" res
 
-                    let packageId =
-                        if String.IsNullOrWhiteSpace packageId then Path.GetFileNameWithoutExtension projectPath
-                        else packageId
+                        res
 
-                    let description =
-                        if String.IsNullOrWhiteSpace packageDescription then packageId
-                        else packageDescription
+                    for d in deps do
+                        let p = d.Attribute(XName.Get "id").Value |> PackageName
+                        let ex = d.Attribute(XName.Get "exclude")
+                        if not (isNull ex) then ex.Remove()
 
-                    let b = System.Text.StringBuilder()
-                    let inline line fmt = Printf.kprintf (fun str -> b.AppendLine str |> ignore) fmt
-                    line "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-                    line "<package xmlns=\"http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd\">"
-                    line "  <metadata>"
-                    line "    <id>%s</id>" packageId
-                    line "    <version>%s</version>" packageVersion
-                    line "    <authors>%s</authors>" packageAuthors
-                    line "    <owners>%s</owners>" packageAuthors
-                    line "    <releaseNotes>"
-                    line "%s" packageReleaseNotes
-                    line "    </releaseNotes>" 
-                    line "    <requireLicenseAcceptance>false</requireLicenseAcceptance>"
-                    line "    <description>%s</description>" description
-                    line "    <dependencies>"
-                    line "      <group targetFramework=\"%s\">" framework
-                    for (name, version) in dependencies do
-                        line "        <dependency id=\"%s\" version=\"%s\" />" name.Name version 
-
-                    for proj in projectReferences do
-                        let name = Path.GetFileNameWithoutExtension proj
-                        line "        <dependency id=\"%s\" version=\"[%s]\" />" name packageVersion 
+                        match Map.tryFind p versions with
+                        | Some range ->
+                            d.SetAttributeValue(XName.Get "version", range)
+                        | None ->
+                            d.Remove()
 
 
-                    line "      </group>"
-                    line "    </dependencies>"
-                    line "  </metadata>"
-                    line "  <files>"
-                    line "    <file src=\"%s\" target=\"lib/%s/%s\" />" dllPath framework dllName
-                    line "  </files>"
-                    line "</package>"
-
-                    File.WriteAllText(nuspecPath, b.ToString())
-
-                    // <?xml version="1.0" encoding="utf-8"?>
-                    // <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
-                    // <metadata>
-                    //     <id>Test</id>
-                    //     <version>4.3.2</version>
-                    //     <authors>Test</authors>
-                    //     <description>Package Description</description>
-                    //     <dependencies>
-                    //     <group targetFramework="net6.0">
-                    //         <dependency id="Aardvark.Build" version="1.0.0" exclude="Build,Analyzers" />
-                    //         <dependency id="FSharp.Core" version="6.0.0" exclude="Build,Analyzers" />
-                    //         <dependency id="Microsoft.Build.Framework" version="17.0.0" exclude="Build,Analyzers" />
-                    //         <dependency id="Microsoft.Build.Tasks.Core" version="17.0.0" exclude="Build,Analyzers" />
-                    //         <dependency id="Microsoft.Build.Utilities.Core" version="17.0.0" exclude="Build,Analyzers" />
-                    //         <dependency id="Mono.Cecil" version="0.11.4" exclude="Build,Analyzers" />
-                    //         <dependency id="SharpZipLib" version="1.3.3" exclude="Build,Analyzers" />
-                    //     </group>
-                    //     </dependencies>
-                    // </metadata>
-                    // <files>
-                    //     <file src="/Users/schorsch/Development/aardvark.build/bin/Debug/net6.0/Test.runtimeconfig.json" target="lib/net6.0/Test.runtimeconfig.json" />
-                    //     <file src="/Users/schorsch/Development/aardvark.build/bin/Debug/net6.0/Test.dll" target="lib/net6.0/Test.dll" />
-                    // </files>
-                    // </package>
+                    nuspec.Save nuspecPath
 
 
-                    let spec =
-                        {
-                            Version = ""
-                            OfficialName = "Paket"
-                            References = NuspecReferences.All
-                            Dependencies = lazy []
-                            LicenseUrl = ""
-                            IsDevelopmentDependency = false
-                            FrameworkAssemblyReferences = []
-                        }         
+                    // let dllName = Path.GetFileName assemblyName + ".dll"
+
+                    // let dllPath =
+                    //     Path.Combine(projDir, outputPath, Path.GetFileName assemblyName + ".dll")
+                    //     |> Path.GetFullPath
+
+
+                    // let framework =
+                    //     Path.GetFileName(Path.GetDirectoryName dllPath)
+
+                    // let packageId =
+                    //     if String.IsNullOrWhiteSpace packageId then Path.GetFileNameWithoutExtension projectPath
+                    //     else packageId
+
+                    // let description =
+                    //     if String.IsNullOrWhiteSpace packageDescription then packageId
+                    //     else packageDescription
+
+                    // let b = System.Text.StringBuilder()
+                    // let inline line fmt = Printf.kprintf (fun str -> b.AppendLine str |> ignore) fmt
+                    // line "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                    // line "<package xmlns=\"http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd\">"
+                    // line "  <metadata>"
+                    // line "    <id>%s</id>" packageId
+                    // line "    <version>%s</version>" packageVersion
+                    // line "    <authors>%s</authors>" packageAuthors
+                    // line "    <owners>%s</owners>" packageAuthors
+                    // line "    <releaseNotes>"
+                    // line "%s" packageReleaseNotes
+                    // line "    </releaseNotes>" 
+                    // line "    <requireLicenseAcceptance>false</requireLicenseAcceptance>"
+                    // line "    <description>%s</description>" description
+                    // line "    <dependencies>"
+                    // line "      <group targetFramework=\"%s\">" framework
+                    // for (name, version) in dependencies do
+                    //     line "        <dependency id=\"%s\" version=\"%s\" />" name.Name version 
+
+                    // for proj in projectReferences do
+                    //     let name = Path.GetFileNameWithoutExtension proj
+                    //     line "        <dependency id=\"%s\" version=\"[%s]\" />" name packageVersion 
+
+
+                    // line "      </group>"
+                    // line "    </dependencies>"
+                    // line "  </metadata>"
+                    // line "  <files>"
+                    // line "    <file src=\"%s\" target=\"lib/%s/%s\" />" dllPath framework dllName
+                    // line "  </files>"
+                    // line "</package>"
+
+                    // File.WriteAllText(nuspecPath, b.ToString())
+
 
                     true
                 else

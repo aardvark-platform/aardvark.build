@@ -31,7 +31,7 @@
 
 
   <UsingTask TaskName="Aardvark.Build.OverrideNuspecTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="NewNuspec" DependsOnTargets="Compile" AfterTargets="GenerateNuspec;PaketOverrideNuspec"> 
+  <Target Name="NewNuspec" DependsOnTargets="Compile" Condition="'$(IsPackable)' == '' Or '$(IsPackable)' == 'true'" AfterTargets="GenerateNuspec;PaketOverrideNuspec"> 
     <OverrideNuspecTask
       DesignTime="$(DesignTimeBuild)"
       Assembly="@(IntermediateAssembly)"
@@ -42,10 +42,7 @@
       OutputPath="$(OutputPath)"
 
       PackageVersion="$(PackageVersion)"
-      PackageId="$(PackageId)"
-      PackageAuthors="$(Authors)"
       PackageReleaseNotes="$(PackageReleaseNotes)"
-      PackageDescription="$(Description)"
       ProjectReferences="@(ProjectReference)"
     />
   </Target>
