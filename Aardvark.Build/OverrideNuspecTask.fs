@@ -12,8 +12,9 @@ open Paket
 open Paket.Core
 open Paket.Domain
 
-type OverrideNuspecTask() =
+type OverrideNuspecTask() as this =
     inherit Task()
+
     let mutable designTime = false
     let mutable repoRoot = ""
     let mutable assemblyPath = ""
@@ -28,7 +29,8 @@ type OverrideNuspecTask() =
     let mutable packageAuthors = ""
     let mutable packageReleaseNotes = ""
     let mutable packageDescription = ""
-
+    
+    do Tools.boot this.Log
 
 
     member x.PackageDescription

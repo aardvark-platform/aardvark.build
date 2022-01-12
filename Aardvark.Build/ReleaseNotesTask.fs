@@ -13,14 +13,18 @@ open Paket.Core
 open Paket.Domain
 
 
-type ReleaseNotesTask() =
+type ReleaseNotesTask() as this =
     inherit Task()
+
+
     let mutable designTime = false
     let mutable projectPath = ""
     let mutable nugetVersion = ""
     let mutable assemblyVersion = ""
     let mutable repoRoot = ""
     let mutable notes = ""
+
+    do Tools.boot this.Log
 
     member x.RepositoryRoot
         with get() = repoRoot

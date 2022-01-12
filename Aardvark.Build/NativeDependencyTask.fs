@@ -14,7 +14,7 @@ open Paket.Domain
 
 
 
-type NativeDependencyTask() =
+type NativeDependencyTask() as this =
     inherit Task()
 
     let mutable repoRoot = ""
@@ -25,14 +25,15 @@ type NativeDependencyTask() =
     let mutable projectPath = ""
 
     let mutable cancel : CancellationTokenSource = null
-
+    
+    do Tools.boot this.Log
 
     member x.Remapping (srcDirectory : string, outputPath : string) =
         let ct = cancel.Token
         let file = Path.Combine(srcDirectory, "remap.xml")
         if File.Exists file then
             let d = XDocument.Load(file)
-            let config = d.Element("configuration")
+            let config = d.Element(XName.Get "configuration")
             for e in config.Elements(XName.Get("dllmap")) do
                 let os = e.Attribute(XName.Get "os").Value
                 if os = Native.platform then

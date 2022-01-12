@@ -5,3 +5,5 @@ obj/
 /bin
 /pack
 .DS_Store
+/.vs
+/.ionide

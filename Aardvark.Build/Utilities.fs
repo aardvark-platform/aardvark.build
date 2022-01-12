@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open Microsoft.Build.Utilities
 
 [<AutoOpen>]
 module PathExtensions =
@@ -194,6 +195,40 @@ module Tools =
     let private releaseNotesRx =
         System.Text.RegularExpressions.Regex(@"^release(_|-)?notes(\.md)?$", Text.RegularExpressions.RegexOptions.IgnoreCase)
 
+    type private Marker = class end
+    let mutable private installed = 0
+    let boot (log : TaskLoggingHelper) =
+        if System.Threading.Interlocked.Exchange(&installed, 1) = 0 then
+            let root = Path.GetDirectoryName typeof<Marker>.Assembly.Location
+            let inResolve = new System.Threading.ThreadLocal<bool>(fun _ -> false)
+            System.AppDomain.CurrentDomain.add_AssemblyResolve (ResolveEventHandler(fun _ e ->
+                if inResolve.Value then
+                    null
+                else
+                    inResolve.Value <- true
+                    let n = System.Reflection.AssemblyName e.Name
+                    try
+                        let loaded = 
+                            AppDomain.CurrentDomain.GetAssemblies() 
+                            |> Array.tryFind (fun a -> a.GetName().Name = n.Name)
+                        match loaded with
+                        | Some l -> l
+                        | None ->
+                            try
+                                System.Reflection.Assembly.Load e.Name
+                            with _ ->
+                                let n = System.Reflection.AssemblyName e.Name
+                                let dll = Path.Combine(root, n.Name + ".dll")
+                                if File.Exists dll then 
+                                    log.LogMessage $"loading {dll} (possible version mismatch)"
+                                    try System.Reflection.Assembly.LoadFile dll
+                                    with _ -> null
+                                else
+                                    null
+                    finally
+                        inResolve.Value <- false
+            ))
+            
     let rec findProjectRoot (path : string) =
         try
             if Directory.Exists path then 
