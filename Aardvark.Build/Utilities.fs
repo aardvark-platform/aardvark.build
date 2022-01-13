@@ -190,6 +190,7 @@ module Tools =
             "readme(\.md)?"
             "paket\.dependencies"
             "build\.(cmd|bat|ps1|sh)"
+            @"release(_|-)?notes(\.md)?"
         ]
 
     let private releaseNotesRx =

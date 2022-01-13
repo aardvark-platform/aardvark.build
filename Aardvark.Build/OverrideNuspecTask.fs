@@ -155,7 +155,7 @@ type OverrideNuspecTask() as this =
                             let name = Path.GetFileNameWithoutExtension p |> PackageName
                             res <- Map.add name $"[{packageVersion}]" res
 
-                        res
+                        res |> Map.remove (PackageName "Aardvark.Build")
 
                     for d in deps do
                         let p = d.Attribute(XName.Get "id").Value |> PackageName
