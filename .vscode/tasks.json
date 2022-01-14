@@ -49,7 +49,8 @@
             "type": "shell",
             "args": [
                 "pack",
-                "Test/Test.fsproj"
+                "Test/Test.fsproj",
+                "-v:d"
             ],
             "dependsOn": [
                 "build"

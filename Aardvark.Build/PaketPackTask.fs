@@ -88,194 +88,72 @@ type PaketPackTask() as this =
         else
             let projDir = Path.GetDirectoryName projectPath
         
+            let runPaket fmt  =
+                fmt |> Printf.kprintf (fun command ->
+                    let proc = ProcessStartInfo("dotnet")
+                    proc.Arguments <- sprintf "paket %s" command
+                    proc.UseShellExecute <- false
+                    proc.CreateNoWindow <- true
+                    proc.RedirectStandardOutput <- true
+                    proc.RedirectStandardError <- true
+
+                    let p = Process.Start proc
+                    p.OutputDataReceived.Add (fun e ->
+                        if not (isNull e.Data) then
+                            x.Log.LogMessage(MessageImportance.Normal, e.Data)
+                    )
+
+                    p.ErrorDataReceived.Add (fun e ->
+                        if not (isNull e.Data) then
+                            x.Log.LogError(e.Data)
+                    )
+                    p.BeginOutputReadLine()
+                    p.BeginErrorReadLine()
+
+                    p.WaitForExit()
+                    if p.ExitCode <> 0 then
+                        x.Log.LogError(sprintf "Paket exited with code %d" p.ExitCode)
+                        false
+                    else
+                        true
+                )
+
+
+
             let packageOutputPath = Path.GetFullPath packageOutputPath
             let template = Path.Combine(projDir, "paket.template")
             if File.Exists template then
-                let proc = ProcessStartInfo("dotnet")
-                proc.Arguments <- sprintf "paket pack --silent --interproject-references fix --template \"%s\" --release-notes \"%s\" --version %s --build-config %s \"%s\"" template packageReleaseNotes packageVersion config packageOutputPath
-                proc.UseShellExecute <- false
-                proc.CreateNoWindow <- true
-                proc.RedirectStandardOutput <- true
-                proc.RedirectStandardError <- true
 
+                if runPaket "--version" then
 
+                    let result =
+                        runPaket "pack --silent --interproject-references fix --template \"%s\" --release-notes \"%s\" --version %s --build-config %s \"%s\"" template packageReleaseNotes packageVersion config packageOutputPath
 
-                let p = Process.Start proc
-                p.OutputDataReceived.Add (fun e ->
-                    if not (isNull e.Data) then
-                        x.Log.LogMessage(MessageImportance.Normal, e.Data)
-                )
+                    if result then
+                        let packageId =  
+                            let customId = 
+                                let nameRx = System.Text.RegularExpressions.Regex @"^id[ \t]+(.*)$"
+                                File.ReadAllLines template
+                                |> Array.tryPick (fun line ->
+                                    let m = nameRx.Match line
+                                    if m.Success then Some m.Groups.[1].Value
+                                    else None
+                                )
+                            match customId with
+                            | Some id -> id
+                            | None -> Path.GetFileNameWithoutExtension projectPath
 
-                p.ErrorDataReceived.Add (fun e ->
-                    if not (isNull e.Data) then
-                        x.Log.LogError(e.Data)
-                )
-                p.BeginOutputReadLine()
-                p.BeginErrorReadLine()
+                        let packageName = sprintf "%s.%s.nupkg" packageId packageVersion 
+                        let message =
+                            let p = Path.Combine(packageOutputPath, packageName)
+                            sprintf "Packed %s" p
 
-                p.WaitForExit()
-
-                let packageId =  
-                    let customId = 
-                        let nameRx = System.Text.RegularExpressions.Regex @"^id[ \t]+(.*)$"
-                        File.ReadAllLines template
-                        |> Array.tryPick (fun line ->
-                            let m = nameRx.Match line
-                            if m.Success then Some m.Groups.[1].Value
-                            else None
-                        )
-                    match customId with
-                    | Some id -> id
-                    | None -> Path.GetFileNameWithoutExtension projectPath
-
-                let packageName = sprintf "%s.%s.nupkg" packageId packageVersion 
-                let message =
-                    let p = Path.Combine(packageOutputPath, packageName)
-                    sprintf "Packed %s" p
-
-                x.Log.LogMessage(MessageImportance.High, message)
-
-                // let depPath = Path.Combine(root, "paket.dependencies")
-                // let refPath = Path.Combine(projDir, "paket.references")
-
-                // if File.Exists depPath && File.Exists refPath then
-                //     let deps = DependenciesFile.ReadFromFile depPath
-                //     let findPackageConstraint (id : PackageName) =
-                //         deps.Groups |> Map.toSeq |> Seq.tryPick (fun (_,g) ->
-                //             g.Packages |> List.tryPick (fun p ->
-                //                 if p.Name = id then Some p.VersionRequirement
-                //                 else None
-                //             )
-                //         )
-                    
-                //     let nugetRange (version : VersionRequirement) =
-                //         match version.Range with
-                //         | Minimum a -> string a
-                //         | GreaterThan a -> sprintf "(%A,)" a
-                //         | Maximum a -> sprintf "(,%A]" a
-                //         | LessThan a -> sprintf "(,%A)" a
-                //         | Specific a -> sprintf "[%A]" a
-                //         | OverrideAll a -> sprintf "[%A]" a
-                //         | Range(lb,l,h,hb) -> 
-                //             let prefix =
-                //                 match lb with
-                //                 | VersionRangeBound.Including -> "["
-                //                 | VersionRangeBound.Excluding -> "("
-                //             let suffix =
-                //                 match hb with
-                //                 | VersionRangeBound.Including -> "]"
-                //                 | VersionRangeBound.Excluding -> ")"
-                //             sprintf "%s%A,%A%s" prefix l h suffix
-
-                    
-                //     let dependencies = 
-                //         let refs = ReferencesFile.FromFile refPath
-                //         refs.Groups |> Map.toList |> List.collect (fun (_g, ps) ->
-                //             ps.NugetPackages |> List.map (fun p ->
-                //                 match findPackageConstraint p.Name with
-                //                 | Some c -> 
-                //                     p.Name, nugetRange c
-                //                 | None ->
-                //                     p.Name, "0.0.0"
-                //             )
-                //         )
-
-                //     let name = Path.GetFileNameWithoutExtension assemblyName
-                //     let nuspecPath =
-                //         Path.Combine(Path.GetDirectoryName(assemblyPath), "..", sprintf "%s.%s.nuspec" name packageVersion)
-                //         |> Path.GetFullPath
-
-
-                //     let nuspec = XDocument.Load nuspecPath
-
-                //     let deps = 
-                //         let inline name n =
-                //             XName.Get(n, "http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd")
-                //         nuspec
-                //             .Descendants(name "package")
-                //             .Descendants(name "metadata")
-                //             .Descendants(name "dependencies")
-                //             .Descendants(name "group")
-                //             .Descendants(name "dependency") |> Seq.toArray
-
-                //     let versions = 
-                //         let mutable res = Map.ofList dependencies
-                //         for p in projectReferences do
-                //             let name = Path.GetFileNameWithoutExtension p |> PackageName
-                //             res <- Map.add name $"[{packageVersion}]" res
-
-                //         res |> Map.remove (PackageName "Aardvark.Build")
-
-                //     for d in deps do
-                //         let p = d.Attribute(XName.Get "id").Value |> PackageName
-                //         let ex = d.Attribute(XName.Get "exclude")
-                //         if not (isNull ex) then ex.Remove()
-
-                //         match Map.tryFind p versions with
-                //         | Some range ->
-                //             d.SetAttributeValue(XName.Get "version", range)
-                //         | None ->
-                //             d.Remove()
-
-
-                //     nuspec.Save nuspecPath
-
-
-                //     // let dllName = Path.GetFileName assemblyName + ".dll"
-
-                //     // let dllPath =
-                //     //     Path.Combine(projDir, outputPath, Path.GetFileName assemblyName + ".dll")
-                //     //     |> Path.GetFullPath
-
-
-                //     // let framework =
-                //     //     Path.GetFileName(Path.GetDirectoryName dllPath)
-
-                //     // let packageId =
-                //     //     if String.IsNullOrWhiteSpace packageId then Path.GetFileNameWithoutExtension projectPath
-                //     //     else packageId
-
-                //     // let description =
-                //     //     if String.IsNullOrWhiteSpace packageDescription then packageId
-                //     //     else packageDescription
-
-                //     // let b = System.Text.StringBuilder()
-                //     // let inline line fmt = Printf.kprintf (fun str -> b.AppendLine str |> ignore) fmt
-                //     // line "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-                //     // line "<package xmlns=\"http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd\">"
-                //     // line "  <metadata>"
-                //     // line "    <id>%s</id>" packageId
-                //     // line "    <version>%s</version>" packageVersion
-                //     // line "    <authors>%s</authors>" packageAuthors
-                //     // line "    <owners>%s</owners>" packageAuthors
-                //     // line "    <releaseNotes>"
-                //     // line "%s" packageReleaseNotes
-                //     // line "    </releaseNotes>" 
-                //     // line "    <requireLicenseAcceptance>false</requireLicenseAcceptance>"
-                //     // line "    <description>%s</description>" description
-                //     // line "    <dependencies>"
-                //     // line "      <group targetFramework=\"%s\">" framework
-                //     // for (name, version) in dependencies do
-                //     //     line "        <dependency id=\"%s\" version=\"%s\" />" name.Name version 
-
-                //     // for proj in projectReferences do
-                //     //     let name = Path.GetFileNameWithoutExtension proj
-                //     //     line "        <dependency id=\"%s\" version=\"[%s]\" />" name packageVersion 
-
-
-                //     // line "      </group>"
-                //     // line "    </dependencies>"
-                //     // line "  </metadata>"
-                //     // line "  <files>"
-                //     // line "    <file src=\"%s\" target=\"lib/%s/%s\" />" dllPath framework dllName
-                //     // line "  </files>"
-                //     // line "</package>"
-
-                //     // File.WriteAllText(nuspecPath, b.ToString())
-
-
-                //     true
-                // else
-                //     false
-            true
+                        x.Log.LogMessage(MessageImportance.High, message)
+                        true
+                    else
+                        false
+                else
+                    false
+            else
+                true
          
