@@ -1,9 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <Description>Test Project</Description>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\bin\Debug</OutputPath>
@@ -17,6 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Build\Aardvark.Build.fsproj" />
   </ItemGroup>
-  <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" />
   <Import Project="..\.paket\Paket.Restore.targets" />
+  <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" />
 </Project>
