@@ -25,7 +25,8 @@ jobs:
         shell: cmd
         run: dotnet build -c Release Aardvark.Build.sln
       - name: Pack
-        run: dotnet pack --no-build -c Release Aardvark.Build.sln -o bin\pack
+        shell: cmd
+        run: pack.cmd
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
