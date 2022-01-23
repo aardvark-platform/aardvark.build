@@ -49,8 +49,9 @@
             "type": "shell",
             "args": [
                 "pack",
-                "Test/Test.fsproj",
-                "-v:d"
+                "Test/Test/Test.fsproj",
+                "-o",
+                "${workspaceFolder}/bin",
             ],
             "dependsOn": [
                 "build"

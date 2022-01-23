@@ -6,6 +6,10 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "**/obj/": true
+        "**/obj/": true,
+        ".paket": true,
+        "packages": true,
+        "paket-files": true,
+        ".ionide": true
     }
 }
