@@ -1,0 +1,4 @@
+/Users/schorsch/Development/FSys/
+   dotnet tool restore
+   dotnet build -c Debug
+   dotnet paket pack --version {VERSION} --build-config Debug {OUTPUT}

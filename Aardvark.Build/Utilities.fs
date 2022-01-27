@@ -198,8 +198,11 @@ module Tools =
 
     type private Marker = class end
     let mutable private installed = 0
+    let mutable private logger : TaskLoggingHelper = null
+
     let boot (log : TaskLoggingHelper) =
         if System.Threading.Interlocked.Exchange(&installed, 1) = 0 then
+            logger <- log
             let root = Path.GetDirectoryName typeof<Marker>.Assembly.Location
             let inResolve = new System.Threading.ThreadLocal<bool>(fun _ -> false)
             System.AppDomain.CurrentDomain.add_AssemblyResolve (ResolveEventHandler(fun _ e ->
@@ -275,6 +278,87 @@ module Tools =
             with _ ->   
                 None
 
+    open System.IO
+    open System.Diagnostics
+
+    let git dir fmt =
+        fmt |> Printf.kprintf (fun cmd ->
+            let info = ProcessStartInfo("git")
+            info.Arguments <- cmd
+            info.UseShellExecute <- false
+            info.RedirectStandardOutput <- true
+            info.RedirectStandardError <- true
+            info.CreateNoWindow <- true
+            info.WorkingDirectory <- dir
+            let p = Process.Start(info)
+
+            let output = System.Collections.Generic.List<string>()
+            p.OutputDataReceived.Add (fun e ->
+                if not (isNull e.Data) then output.Add e.Data
+            )
+            
+            if not (isNull logger) then
+                logger.LogMessage(sprintf "running git %s" cmd)
+                p.OutputDataReceived.Add (fun e ->
+                    if not (isNull e.Data) then logger.LogMessage(sprintf "    %s" e.Data)
+                )
+                p.ErrorDataReceived.Add (fun e ->
+                    if not (isNull e.Data) then logger.LogMessage(sprintf "    %s" e.Data)
+                )
+            p.BeginOutputReadLine()
+            p.BeginErrorReadLine()
+
+            p.WaitForExit()
+            if p.ExitCode <> 0 then 
+                if not (isNull logger) then
+                    logger.LogError(sprintf "git %s exited with code %d" cmd p.ExitCode)
+                failwithf "git %s exited with code %d" cmd p.ExitCode
+            
+            Seq.toList output
+        )
+
+
+    let rec computeDirectoryHash (repoPath : string) =
+        let sb = System.Text.StringBuilder()
+        // use ms = new MemoryStream()
+        // use w = new System.Security.Cryptography.CryptoStream(ms, System.Security.Cryptography.SHA1.Create(), System.Security.Cryptography.CryptoStreamMode.Write)
+        // use sb = new StreamWriter(w)
+
+        if Directory.Exists (Path.Combine(repoPath, ".git")) then
+            for hash in git repoPath "log -n 1 --pretty=format:\"%%H\"" do
+                sb.AppendLine hash |> ignore
+
+            git repoPath "status --porcelain" |> List.iter (fun s ->
+                sb.AppendLine s |> ignore
+                let file = Path.Combine(repoPath, s.Substring(3).Replace('/', Path.DirectorySeparatorChar))
+
+                if File.Exists file then
+                    for line in git repoPath "hash-object \"%s\"" file do
+                        sb.AppendLine line |> ignore
+                elif Directory.Exists file then
+                    let files = Directory.GetFiles(file, "*", SearchOption.AllDirectories)
+                    for file in files do
+                        sb.AppendLine (sprintf "?? %s" file) |> ignore
+                        for line in git repoPath "hash-object \"%s\"" file do
+                            sb.AppendLine line |> ignore
+                else
+                    failwithf "git status reported unknown file %s" file
+            )
+            let bytes = System.Text.Encoding.UTF8.GetBytes (sb.ToString())
+            use sha = System.Security.Cryptography.SHA1.Create()
+            sha.ComputeHash(bytes) |> System.Convert.ToBase64String
+
+        else
+            let dates = 
+                Directory.GetFiles(repoPath, "*", SearchOption.AllDirectories)
+                |> Array.map (fun f -> File.GetLastWriteTime f)
+            if dates.Length > 0 then 
+                let date = Array.max dates
+                date.ToFileTimeUtc() |> System.BitConverter.GetBytes |> System.Convert.ToBase64String
+            else
+                "empty"
+
+    // computeDirectoryHash "/Users/schorsch/Development/FSys";;
 
 module Symlink =
     open System.Runtime.InteropServices

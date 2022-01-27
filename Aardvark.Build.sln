@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.fsproj", "{518D3A53-7FFE-466C-97DC-8B7D41A453CA}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "aardbuild", "aardbuild\aardbuild.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{518D3A53-7FFE-466C-97DC-8B7D41A453CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{518D3A53-7FFE-466C-97DC-8B7D41A453CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{518D3A53-7FFE-466C-97DC-8B7D41A453CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

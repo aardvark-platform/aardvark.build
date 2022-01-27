@@ -30,6 +30,20 @@
   </Target>
 
 
+  <UsingTask TaskName="Aardvark.Build.LocalPackageOverrideTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
+  <Target Name="LocalPackages" AfterTargets="ResolveReferences" >
+    <LocalPackageOverrideTask RepositoryRoot="$(RepositoryRoot)" InputReferences="@(ReferencePath)" InputCopyLocal="@(ReferenceCopyLocalPaths)" ProjectPath="$(MSBuildProjectFullPath)">
+      <Output TaskParameter="OutputReferences" PropertyName="OutputReferences"/>
+    </LocalPackageOverrideTask>
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" />
+      <ReferencePath Include="$(OutputReferences)" />
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+      <ReferenceCopyLocalPaths Include="$(OutputReferences)" />
+    </ItemGroup>
+  </Target>
+
+
   <UsingTask TaskName="Aardvark.Build.PaketPackTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
   <Target Name="PaketOverrideNuspec" />
   <Target Name="PaketPack" DependsOnTargets="Compile" Condition="'$(IsPackable)' == '' Or '$(IsPackable)' == 'true'" AfterTargets="GenerateNuspec;PaketOverrideNuspec" BeforeTargets="PackTask"> 

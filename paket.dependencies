@@ -11,3 +11,6 @@ nuget Microsoft.Build.Framework ~> 17.0.0
 nuget Microsoft.Build.Utilities.Core ~> 17.0.0
 nuget Fake.Core.ReleaseNotes ~> 5.20.4
 nuget Paket.Core ~> 6.2.1
+nuget Fake.DotNet.Cli ~> 5.20.4
+nuget Fake.Tools.Git ~> 5.20.4
+nuget FSys ~> 0.0.1

@@ -9,7 +9,7 @@
             "type": "shell",
             "args": [
                 "build",
-                "Aardvark.Build/Aardvark.Build.fsproj",
+                "Aardvark.Build.sln",
                 // Ask dotnet build to generate full paths for file names.
                 "/property:GenerateFullPaths=true",
                 // Do not generate summary otherwise it leads to duplicate errors in Problems panel
@@ -27,7 +27,7 @@
             "type": "shell",
             "args": [
                 "build",
-                "Test/Test.fsproj",
+                "Test/Test/Test.fsproj",
                 "--no-dependencies",
                 // Ask dotnet build to generate full paths for file names.
                 "/property:GenerateFullPaths=true",

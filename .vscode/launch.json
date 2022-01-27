@@ -8,9 +8,9 @@
             "name": ".NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Release/net6.0/aardbuild.dll",
-            "args": ["/Users/schorsch/Development/aardvark.base", "-p", "src/Aardvark.sln", "Compile"],
+            "preLaunchTask": "build-test",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/Test.dll",
+            "args": ["/Users/schorsch/Development/FSys"],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "internalConsole"
