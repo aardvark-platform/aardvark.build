@@ -193,48 +193,34 @@ let main args =
                     Log.error "paket error: %A" e
                     reraise()
 
-            let templates =
-                let templateFiles =
-                    Directory.GetFiles(workdir, "*.template", SearchOption.AllDirectories)
-                let parsed = 
-                    deps.ListTemplateFiles()
-                    |> List.map (fun f -> Path.GetFullPath f.FileName, f)
-                    |> Map.ofList
-                
-                templateFiles |> Array.choose (fun p ->
-                    match Map.tryFind p parsed with
-                    | Some f -> Some f
-                    | None ->
-                        Log.warn "could not parse %A" (Path.Relative(p, workdir))
-                        None
-                )
+            deps.Pack(
+                Path.Combine(workdir, "bin", "pack"),
+                version = version,
+                releaseNotes = String.concat "\r\n" releaseNotes,
+                buildConfig = "Release",
+                interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
+                ?projectUrl = projectUrl
+            )
 
-            for f in templates do
-                let packageId  = 
-                    match f.Contents with
-                    | Paket.TemplateFileContents.CompleteInfo(info, opt) -> 
-                        info.Id
-                    | Paket.TemplateFileContents.ProjectInfo(info, opt) -> 
-                        match info.Id with
-                        | Some id -> id
-                        | None -> 
-                            let proj = Directory.GetFiles(Path.GetDirectoryName f.FileName, "*.*proj") |> Array.head |> Path.GetFileNameWithoutExtension
-                            proj
+            let templateFiles =
+                Directory.GetFiles(workdir, "*.template", SearchOption.AllDirectories)
 
-                deps.Pack(
-                    Path.Combine(workdir, "bin", "pack"),
-                    version = version,
-                    releaseNotes = String.concat "\r\n" releaseNotes,
-                    buildConfig = "Release",
-                    interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
-                    ?projectUrl = projectUrl
-                )
+            let packages =
+                Directory.GetFiles(outputPath, "*.nupkg")
 
-                let packageFile =
-                    Path.Combine(outputPath, packageId + "." + version + ".nupkg")
-                
-                Log.line "packed %s" (Path.Relative(packageFile, workdir))
+            let packageNameRx = Regex @"^(.*?)\.([0-9]+\.[0-9]+.*)\.nupkg$"
 
+            for path in packages do
+                let m = packageNameRx.Match (Path.GetFileName path)
+                if m.Success then
+                    let id = m.Groups.[1].Value.Trim()
+                    let v = m.Groups.[2].Value.Trim()
+                    if v = version then
+                        Log.line "packed %s (%s)" id v
+                    else
+                        try File.Delete path
+                        with _ -> ()
+            
         Log.stop()
 
         

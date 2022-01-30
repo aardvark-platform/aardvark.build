@@ -10,8 +10,8 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/bin/Debug/net6.0/aardpack.dll",
-            "args": ["/Users/schorsch/Development/FSys/FSys.sln"],
-            "cwd": "/Users/schorsch/Development/FSys",
+            "args": ["/Users/schorsch/Development/FShade/src/FShade.sln"],
+            "cwd": "/Users/schorsch/Development/FShade",
             "stopAtEntry": false,
             "console": "internalConsole"
         }

@@ -1,3 +1,6 @@
+### 1.0.5
+* fixed output for pack (correctly reporting all packages)
+
 ### 1.0.4
 * fixed build-package
 
