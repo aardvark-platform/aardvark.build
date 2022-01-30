@@ -1,3 +1,6 @@
+### 1.0.4
+* fixed build-package
+
 ### 1.0.3
 * tag only created on CI (when GITHUB_TOKEN is set)
 
