@@ -105,6 +105,17 @@ let main args =
         |> Array.tryFind (fun p -> not (p.StartsWith "-") && Directory.Exists p)
         |> Option.defaultValue Environment.CurrentDirectory
     
+    let files =
+        args 
+        |> Array.filter (fun p -> not (p.StartsWith "-") && File.Exists p)
+        |> Array.toList
+
+    let files =
+        match files with
+        | [] -> [workdir]
+        | f -> f
+
+
     let dependenciesPath = 
         Path.Combine(workdir, "paket.dependencies")
 
@@ -115,13 +126,16 @@ let main args =
 
     try
         Log.start "DotNet:Build"
-        workdir |> DotNet.build (fun o ->
-            { o with    
-                NoLogo = true
-                Configuration = DotNet.BuildConfiguration.Release
-                Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
-            }
-        )
+        for f in files do
+            Log.start "%s" (Path.Relative(f, workdir))
+            f |> DotNet.build (fun o ->
+                { o with    
+                    NoLogo = true
+                    Configuration = DotNet.BuildConfiguration.Release
+                    Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
+                }
+            )
+            Log.stop()
         Log.stop()
 
         
