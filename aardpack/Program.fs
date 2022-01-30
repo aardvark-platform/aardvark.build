@@ -227,6 +227,10 @@ let main args =
         let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
         if not (isNull token) then
             Log.start "Git:Tag"
+
+            Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
+            Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
+
             let tagIsNew = 
                 match releaseNotes with
                 | Some notes ->
@@ -245,10 +249,12 @@ let main args =
                     Log.warn "no version"
                     false
 
+
             Log.stop()
 
 
             if tagIsNew then
+                Git.CommandHelper.directRunGitCommandAndFail workdir "push --tags"
                 Log.start "Github:Release"
                 async {
                     match githubInfo, releaseNotes with
