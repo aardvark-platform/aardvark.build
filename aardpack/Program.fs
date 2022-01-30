@@ -5,11 +5,14 @@ open System.IO
 open System
 open System.Text.RegularExpressions
 open Fake.Tools
+open Fake.Api
 
 module Log =
     let mutable private indent = ""
 
+  
     let private consoleColorSupported =
+    
         let o = Console.ForegroundColor
         try
             Console.ForegroundColor <- ConsoleColor.Yellow
@@ -37,7 +40,8 @@ module Log =
             let c = Console.ForegroundColor
             try
                 Console.ForegroundColor <- ConsoleColor.Yellow
-                Console.WriteLine("\u001b[1;33m{0}WRN {1}", indent, str)
+                Console.WriteLine("{0}WRN {1}", indent, str)
+                //Console.WriteLine("\u001b[1;33m{0}WRN {1}", indent, str)
             finally
                 Console.ForegroundColor <- c
         )
@@ -48,7 +52,8 @@ module Log =
             let c = Console.ForegroundColor
             try
                 Console.ForegroundColor <- ConsoleColor.Red
-                Console.WriteLine("\u001b[1;31m{0}ERR {1}", indent, str)
+                Console.WriteLine("{0}ERR {1}", indent, str)
+                //Console.WriteLine("\u001b[1;31m{0}ERR {1}", indent, str)
             finally
                 Console.ForegroundColor <- c
         )
@@ -119,6 +124,24 @@ let main args =
         )
         Log.stop()
 
+        
+        let githubInfo = 
+            let (ret, a, b) = Git.CommandHelper.runGitCommand workdir "remote get-url origin"
+            if ret then
+                match a with
+                | [url] -> 
+                    let sshRx = Regex @"([a-zA-Z0-9_]+)@github.com:([^/]+)/([^/]+).git"
+                    let m = sshRx.Match url
+                    if m.Success then
+                        Some (m.Groups.[2].Value, m.Groups.[3].Value)
+                    else
+                        None
+
+                | _ ->
+                    None
+            else
+                None
+
 
         Log.start "Paket:Pack"
 
@@ -134,6 +157,7 @@ let main args =
 
 
 
+        let outputPath = Path.Combine(workdir, "bin", "pack")
         if File.Exists dependenciesPath && File.Exists releaseNotesPath  then
             
             let version, releaseNotes =
@@ -143,8 +167,10 @@ let main args =
                 | None ->   
                     Log.warn "using version 0.0.0.0"
                     "0.0.0.0", []
-            let projectUrl = None //Some "http://github.com"
-            let outputPath = Path.Combine(workdir, "bin", "pack")
+            let projectUrl =
+                githubInfo |> Option.map (fun (user, repo) -> 
+                    sprintf "https://github.com/%s/%s/" user repo
+                )
             
 
             let deps = 
@@ -198,17 +224,51 @@ let main args =
         Log.stop()
 
         Log.start "Git:Tag"
-        match releaseNotes with
-        | Some notes ->
-            if Directory.Exists(Path.Combine(workdir, ".git")) then
-                try Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
-                with _ -> Log.warn "tag %A already exists" notes.NugetVersion
-            else
-                Log.warn "cannot tag, not a git repository"
+        let tagIsNew = 
+            match releaseNotes with
+            | Some notes ->
+                if Directory.Exists(Path.Combine(workdir, ".git")) then
+                    try 
+                        Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
+                        true
+                    with _ -> 
+                        Log.warn "tag %A already exists" notes.NugetVersion
+                        false
+                else
+                    Log.warn "cannot tag, not a git repository"
+                    false
 
-        | None ->   
-            Log.warn "no version"
+            | None ->   
+                Log.warn "no version"
+                false
+
         Log.stop()
+
+
+        let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
+        if not (isNull token) then
+            if tagIsNew then
+                Log.start "Github:Release"
+                async {
+                    match githubInfo, releaseNotes with
+                    | Some (user, repo), Some notes ->
+                        let client = GitHub.createClientWithToken token
+                        let rel = GitHub.draftNewRelease user repo notes.NugetVersion notes.SemVer.PreRelease.IsSome notes.Notes client
+
+                        let mutable rel = rel
+                        for pkg in Directory.GetFiles(outputPath, "*.nupkg") do
+                            rel <- GitHub.uploadFile pkg rel
+
+                        do! GitHub.publishDraft rel
+                    | _ ->  
+                        ()
+
+                } |> Async.RunSynchronously
+                Log.stop()
+            else
+                Log.warn "not publishing, unchanged version"
+        else
+            Log.warn "not publishing, no github token"
 
         Log.line "finished in %A" sw.Elapsed
 

@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.fsproj", "{518D3A53-7FFE-466C-97DC-8B7D41A453CA}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "aardbuild", "aardbuild\aardbuild.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "aardpack", "aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

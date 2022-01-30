@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <!-- <PackAsTool>true</PackAsTool> -->
+    <PackAsTool>true</PackAsTool>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -15,5 +15,6 @@
   <ItemGroup>
     <Compile Include="Program.fs" />
   </ItemGroup>
+  <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\bin\Debug\netstandard2.0\Aardvark.Build.targets')" />
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
