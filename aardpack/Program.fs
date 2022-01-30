@@ -237,30 +237,31 @@ let main args =
 
         Log.stop()
 
-        Log.start "Git:Tag"
-        let tagIsNew = 
-            match releaseNotes with
-            | Some notes ->
-                if Directory.Exists(Path.Combine(workdir, ".git")) then
-                    try 
-                        Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
-                        true
-                    with _ -> 
-                        Log.warn "tag %A already exists" notes.NugetVersion
-                        false
-                else
-                    Log.warn "cannot tag, not a git repository"
-                    false
-
-            | None ->   
-                Log.warn "no version"
-                false
-
-        Log.stop()
-
-
+        
         let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
         if not (isNull token) then
+            Log.start "Git:Tag"
+            let tagIsNew = 
+                match releaseNotes with
+                | Some notes ->
+                    if Directory.Exists(Path.Combine(workdir, ".git")) then
+                        try 
+                            Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
+                            true
+                        with _ -> 
+                            Log.warn "tag %A already exists" notes.NugetVersion
+                            false
+                    else
+                        Log.warn "cannot tag, not a git repository"
+                        false
+
+                | None ->   
+                    Log.warn "no version"
+                    false
+
+            Log.stop()
+
+
             if tagIsNew then
                 Log.start "Github:Release"
                 async {
