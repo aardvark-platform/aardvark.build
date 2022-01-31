@@ -116,6 +116,14 @@ let main args =
         | f -> f
 
 
+    let createTag =
+        args |> Array.forall (fun a -> a <> "--notag")
+
+
+    let createRelease =
+        args |> Array.forall (fun a -> a <> "--norelease")
+
+
     let dependenciesPath = 
         Path.Combine(workdir, "paket.dependencies")
 
@@ -226,51 +234,64 @@ let main args =
         
         let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
         if not (isNull token) then
-            Log.start "Git:Tag"
+            if createTag then
+                Log.start "Git:Tag"
 
-            Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
-            Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
+                Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
+                Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
 
-            let tagIsNew = 
-                match releaseNotes with
-                | Some notes ->
-                    if Directory.Exists(Path.Combine(workdir, ".git")) then
-                        try 
-                            Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
-                            true
-                        with _ -> 
-                            Log.warn "tag %A already exists" notes.NugetVersion
+                let tagIsNew = 
+                    match releaseNotes with
+                    | Some notes ->
+                        if Directory.Exists(Path.Combine(workdir, ".git")) then
+                            try 
+                                Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
+                                true
+                            with _ -> 
+                                Log.warn "tag %A already exists" notes.NugetVersion
+                                false
+                        else
+                            Log.warn "cannot tag, not a git repository"
                             false
-                    else
-                        Log.warn "cannot tag, not a git repository"
+
+                    | None ->   
+                        Log.warn "no version"
                         false
 
-                | None ->   
-                    Log.warn "no version"
-                    false
+                if tagIsNew then
+                    Git.CommandHelper.directRunGitCommandAndFail workdir "push --tags"
+
+                Log.stop()
 
 
-            Log.stop()
-
-
-            if tagIsNew then
-                Git.CommandHelper.directRunGitCommandAndFail workdir "push --tags"
+            if createRelease then
                 Log.start "Github:Release"
-                async {
-                    match githubInfo, releaseNotes with
-                    | Some (user, repo), Some notes ->
-                        let client = GitHub.createClientWithToken token
-                        let rel = GitHub.draftNewRelease user repo notes.NugetVersion notes.SemVer.PreRelease.IsSome notes.Notes client
 
-                        let mutable rel = rel
-                        for pkg in Directory.GetFiles(outputPath, "*.nupkg") do
-                            rel <- GitHub.uploadFile pkg rel
+                let hash = 
+                    match Git.CommandHelper.runGitCommand workdir "rev-parse HEAD" with
+                    | (true, [hash], _) -> Some hash
+                    | _ -> None
 
-                        do! GitHub.publishDraft rel
-                    | _ ->  
-                        ()
+                match githubInfo, releaseNotes with
+                | Some (user, repo), Some notes ->
+                    let packages = Directory.GetFiles(outputPath, "*.nupkg")
 
-                } |> Async.RunSynchronously
+                    GitHub.createClientWithToken token
+                    |> GitHub.createRelease user repo notes.NugetVersion (fun p ->
+                        { 
+                            Name = notes.NugetVersion
+                            TargetCommitish = match hash with | Some h -> h | None -> p.TargetCommitish
+                            Draft = true
+                            Prerelease = notes.SemVer.PreRelease |> Option.isSome
+                            Body = String.concat "\r\n" notes.Notes
+                        }
+                    )
+                    |> GitHub.uploadFiles packages
+                    |> GitHub.publishDraft
+                    |> Async.RunSynchronously
+                | _ ->  
+                    ()
+
                 Log.stop()
             else
                 Log.warn "not publishing, unchanged version"

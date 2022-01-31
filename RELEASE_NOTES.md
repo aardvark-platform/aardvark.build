@@ -1,3 +1,6 @@
+### 1.0.7
+* improved release creation
+
 ### 1.0.6
 * pushing tag
 
