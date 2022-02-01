@@ -15,3 +15,4 @@ nuget Fake.DotNet.Cli ~> 5.20.4
 nuget Fake.Tools.Git ~> 5.20.4
 nuget Fake.Api.GitHub ~> 5.20.4
 nuget FSys ~> 0.0.1
+nuget Octokit ~> 0.48.0

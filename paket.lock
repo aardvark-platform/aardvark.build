@@ -165,7 +165,7 @@ NUGET
     NuGet.Protocol (6.0)
       NuGet.Packaging (>= 6.0)
     NuGet.Versioning (6.0)
-    Octokit (0.50)
+    Octokit (0.48)
     Paket.Core (6.2.1)
       Chessie (>= 0.6)
       FSharp.Core (>= 5.0)

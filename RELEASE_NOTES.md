@@ -1,4 +1,7 @@
 ### 1.0.7
+* fixed release creation
+
+### 1.0.7
 * improved release creation
 
 ### 1.0.6
