@@ -149,8 +149,8 @@ type ObservableTextWriter() =
     override this.WriteLineAsync(value: string) = this.WriteLine(value); Task.FromResult () :> Task
     override this.WriteLineAsync(value: Text.StringBuilder, cancellationToken: Threading.CancellationToken) = this.WriteLineAsync(value, cancellationToken) |> ignore; Task.FromResult () :> Task
 
-let sshRx = Regex @"([a-zA-Z0-9_]+)@github.com:([^/]+)/([^/]+).git"
-let httpsRx = Regex @"http(s)?://github.com/([^/]+)/([^/]+?)\.git"
+let sshRx = Regex @"([a-zA-Z0-9_]+)@github.com:([^/]+)/([^/]+)\.git$"
+let httpsRx = Regex @"http(s)?://github.com/([^/]+)/([^/]+)$"
 
 type MyWriter() =
     inherit TextWriter()
@@ -267,6 +267,12 @@ let main args =
             else
                 None
 
+        match githubInfo with
+        | Some(user,repo) ->    
+            Log.line "organization: %s" user
+            Log.line "repository:   %s" repo
+        | None ->
+            Log.line "not a github repository"
 
         Log.start "Paket:Pack"
 
@@ -312,9 +318,6 @@ let main args =
                 interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
                 ?projectUrl = projectUrl
             )
-
-            let templateFiles =
-                Directory.GetFiles(workdir, "*.template", SearchOption.AllDirectories)
 
             let packages =
                 Directory.GetFiles(outputPath, "*.nupkg")

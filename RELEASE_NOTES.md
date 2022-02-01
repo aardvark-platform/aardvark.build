@@ -1,3 +1,6 @@
+### 1.0.10
+* fixed parsing of HTTPS remotes
+
 ### 1.0.9
 * fixed Aardvark.Build dependencies
 
