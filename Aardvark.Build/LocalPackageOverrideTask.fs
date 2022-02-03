@@ -21,8 +21,10 @@ type LocalPackageOverrideTask() as this =
 
     let mutable repoRoot = ""
     let mutable references : string[] = [||]
+    let mutable outputReferencesRemove : string[] = [||]
     let mutable outputReferences : string[] = [||]
     let mutable copyLocal : string[] = [||]
+    let mutable copyLocalRemove : string[] = [||]
     let mutable copyLocalOut : string[] = [||]
     let mutable projectPath = ""
 
@@ -41,6 +43,12 @@ type LocalPackageOverrideTask() as this =
 
 
     [<Output>]
+    member x.RemoveCopyLocal
+        with get() = copyLocalRemove
+        and set d = copyLocalRemove <- d
+
+
+    [<Output>]
     member x.OutputCopyLocal
         with get() = copyLocalOut
         and set d = copyLocalOut <- d
@@ -50,6 +58,12 @@ type LocalPackageOverrideTask() as this =
     member x.InputReferences
         with get() = references
         and set d = references <- d
+
+
+    [<Output>]
+    member x.RemoveReferences
+        with get() = outputReferencesRemove
+        and set d = outputReferencesRemove <- d
 
     [<Output>]
     member x.OutputReferences
@@ -68,16 +82,6 @@ type LocalPackageOverrideTask() as this =
             if System.String.IsNullOrWhiteSpace repoRoot then Tools.findProjectRoot projDir
             elif Directory.Exists repoRoot then Some repoRoot
             else None
-
-
-        // let sourcePaths =
-        //     [
-        //         "/Users/schorsch/Development/FSys/", [
-        //             "dotnet tool restore"
-        //             "dotnet build -c Debug"
-        //             "dotnet paket pack --version {VERSION} --build-config Debug {OUTPUT}"
-        //         ]
-        //     ]
 
         let parseLocalSources (file : string) =
             if File.Exists file then
@@ -353,9 +357,7 @@ type LocalPackageOverrideTask() as this =
                 )
                 |> Map.ofList
 
-            let mutable referencedPackages = Map.empty
-            let mutable otherReferences = System.Collections.Generic.List()
-            for path in references do
+            let inline getOverrideReference (path : string) =
                 let path = Path.GetFullPath path
                 if path.StartsWith packagePath then
                     let relative = path.Substring(packagePath.Length).TrimStart [|Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar|]
@@ -368,25 +370,56 @@ type LocalPackageOverrideTask() as this =
                         | Some (sourcePath, map) ->
                             match Map.tryFind framework map with
                             | Some dlls ->
-                                referencedPackages <- Map.add id (sourcePath, version, dlls) referencedPackages
+                                Some (id, sourcePath, version, dlls)
                             | None ->   
                                 x.Log.LogWarning (sprintf "could not find %s in package %s" framework id)
-                                otherReferences.Add path
+                                None
                         | None ->   
-                            otherReferences.Add path
+                            None
                     else
-                        otherReferences.Add path
+                        None
                 else
-                    otherReferences.Add path
+                    None
+
+            let mutable referencedPackages = Map.empty
+            let addReferences = System.Collections.Generic.List()
+            let removeReferences = System.Collections.Generic.List()
+            for path in references do
+                match getOverrideReference path with
+                | Some(id, sourcePath, version, dlls) ->
+                    removeReferences.Add(path)
+                    referencedPackages <- Map.add id (sourcePath, version, dlls) referencedPackages
+                | None ->
+                    ()
 
             for KeyValue(id, (sourcePath, version, dlls))in referencedPackages do
-                
                 x.Log.LogWarning (sprintf "override %s[%s] with local build from %s" id version sourcePath)
-                otherReferences.AddRange dlls
+                addReferences.AddRange dlls
 
 
-            outputReferences <- otherReferences.ToArray()
+            let mutable copyLocalPackages = Map.empty
+            let addCopyLocal = System.Collections.Generic.List()
+            let removeCopyLocal = System.Collections.Generic.List()
+            for path in copyLocal do
+                match getOverrideReference path with
+                | Some(id, sourcePath, version, dlls) ->
+                    removeCopyLocal.Add path
+                    copyLocalPackages <- Map.add id (sourcePath, version, dlls) copyLocalPackages
+                | None ->
+                    ()
+                    
+            for KeyValue(id, (sourcePath, version, dlls))in copyLocalPackages do
+                addCopyLocal.AddRange dlls
+
+            outputReferencesRemove <- removeReferences.ToArray()
+            outputReferences <- addReferences.ToArray()
+            copyLocalRemove <- removeCopyLocal.ToArray()
+            copyLocalOut <- addCopyLocal.ToArray()
         | None ->   
-            outputReferences <- references
+            outputReferencesRemove <- [||]
+            outputReferences <- [||]
+            copyLocalRemove <- [||]
+            copyLocalOut <- [||]
+
 
         true

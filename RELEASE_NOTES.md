@@ -1,3 +1,6 @@
+### 1.0.11
+* improved local.sources support (not touching anything when inactive)
+
 ### 1.0.10
 * fixed parsing of HTTPS remotes
 

@@ -34,12 +34,15 @@
   <Target Name="LocalPackages" AfterTargets="ResolveReferences" >
     <LocalPackageOverrideTask RepositoryRoot="$(RepositoryRoot)" InputReferences="@(ReferencePath)" InputCopyLocal="@(ReferenceCopyLocalPaths)" ProjectPath="$(MSBuildProjectFullPath)">
       <Output TaskParameter="OutputReferences" PropertyName="OutputReferences"/>
+      <Output TaskParameter="RemoveReferences" PropertyName="RemoveReferences"/>
+      <Output TaskParameter="OutputCopyLocal" PropertyName="OutputCopyLocal"/>
+      <Output TaskParameter="RemoveCopyLocal" PropertyName="RemoveCopyLocal"/>
     </LocalPackageOverrideTask>
     <ItemGroup>
-      <ReferencePath Remove="@(ReferencePath)" />
+      <ReferencePath Remove="$(RemoveReferences)" />
       <ReferencePath Include="$(OutputReferences)" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
-      <ReferenceCopyLocalPaths Include="$(OutputReferences)" />
+      <ReferenceCopyLocalPaths Remove="$(RemoveCopyLocal)" />
+      <ReferenceCopyLocalPaths Include="$(OutputCopyLocal)" />
     </ItemGroup>
   </Target>
 
