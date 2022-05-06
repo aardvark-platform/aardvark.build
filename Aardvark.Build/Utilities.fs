@@ -60,13 +60,32 @@ module Assembly =
     open Mono.Cecil
     open System.Threading
 
-    let addNativeZip (ct : CancellationToken) (srcDirectory : string) (dll : string) =
+    let addNativeZip (ct : CancellationToken) (log : TaskLoggingHelper) (srcDirectory : string) (referencePaths : string[]) (dll : string) =
         let name = "native.zip"
         let disposables = System.Collections.Generic.List<IDisposable>()
         try
-            let opt = ReaderParameters()
-            opt.ReadWrite <- true
+            let res = new DefaultAssemblyResolver()
 
+            let opt = 
+                ReaderParameters(
+                    ReadWrite = true,
+                    AssemblyResolver = res
+                )
+
+            res.add_ResolveFailure(
+                AssemblyResolveEventHandler(fun _ name -> 
+                    let path = 
+                        referencePaths |> Array.tryFind (fun path ->
+                            Path.GetFileNameWithoutExtension(path).ToLower().Trim() = name.Name.ToLower().Trim()
+                        )
+                    match path with
+                    | Some path ->
+                        try AssemblyDefinition.ReadAssembly(path, ReaderParameters(AssemblyResolver = res))
+                        with _ -> null
+                    | None ->
+                        null
+                )
+            )
             let pdb = Path.ChangeExtension(dll, ".pdb")
             if File.Exists pdb then
                 let data = File.ReadAllBytes pdb

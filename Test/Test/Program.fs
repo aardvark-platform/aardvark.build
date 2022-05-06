@@ -1,12 +1,13 @@
 ﻿
 open FSys
+open TestLib
 
-module Bla =
-    let test a b = 
-        TestThingHans.test()
-        a + b
+[<Animal(AnimalEnum.Dog)>]
+type Thing([<Animal(AnimalEnum.Dog)>] value : int) =
+    member x.Value = value
 
 [<EntryPoint>]
 let main args =
-    Bla.test 1 2 |> printfn "%A"
+    let t = Thing(100)
+    printfn "%A" t.Value
     0

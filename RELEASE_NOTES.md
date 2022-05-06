@@ -1,3 +1,6 @@
+### 1.0.12
+* fixed AssemblyResolve problem
+
 ### 1.0.11
 * improved local.sources support (not touching anything when inactive)
 

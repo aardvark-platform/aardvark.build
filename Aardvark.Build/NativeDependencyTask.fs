@@ -23,6 +23,7 @@ type NativeDependencyTask() as this =
     let mutable assemblyName = ""
     let mutable outputPath = ""
     let mutable projectPath = ""
+    let mutable references = Array.empty<string>
 
     let mutable cancel : CancellationTokenSource = null
     
@@ -132,7 +133,7 @@ type NativeDependencyTask() as this =
                         Path.Combine(projDir, outputPath)
                         |> Path.GetFullPath
                         
-                    Assembly.addNativeZip cancel.Token libs assemblyPath
+                    Assembly.addNativeZip cancel.Token x.Log libs references assemblyPath
                     //x.CopyNative(libs, outputPath)
                     x.Remapping(libs, outputPath)
 
@@ -161,6 +162,11 @@ type NativeDependencyTask() as this =
     member x.ProjectPath
         with get() = projectPath
         and set p = projectPath <- p
+
+    [<Required>]
+    member x.References
+        with get() = references
+        and set p = references <- p
 
     [<Required>]
     member x.Assembly

@@ -26,6 +26,7 @@
       OutputPath="$(OutputPath)"
       RepositoryRoot="$(RepositoryRoot)"
       ProjectPath="$(MSBuildProjectFullPath)"
+      References="@(ReferencePath)"
     />
   </Target>
 
