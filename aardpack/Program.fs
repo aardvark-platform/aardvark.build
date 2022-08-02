@@ -215,14 +215,14 @@ let main args =
         | [] -> [workdir]
         | f -> f
 
+    let doBuild =
+        args |> Array.forall (fun a -> a <> "--nobuild")
 
     let createTag =
         args |> Array.forall (fun a -> a <> "--notag")
 
-
     let createRelease =
         args |> Array.forall (fun a -> a <> "--norelease")
-
 
     let dependenciesPath = 
         Path.Combine(workdir, "paket.dependencies")
@@ -233,18 +233,19 @@ let main args =
         |> Option.defaultValue (Path.Combine(workdir, "RELEASE_NOTES.md"))
 
     try
-        Log.start "DotNet:Build"
-        for f in files do
-            Log.start "%s" (Path.Relative(f, workdir))
-            f |> DotNet.build (fun o ->
-                { o with    
-                    NoLogo = true
-                    Configuration = DotNet.BuildConfiguration.Release
-                    Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
-                }
-            )
+        if doBuild then 
+            Log.start "DotNet:Build"
+            for f in files do
+                Log.start "%s" (Path.Relative(f, workdir))
+                f |> DotNet.build (fun o ->
+                    { o with    
+                        NoLogo = true
+                        Configuration = DotNet.BuildConfiguration.Release
+                        Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
+                    }
+                )
+                Log.stop()
             Log.stop()
-        Log.stop()
 
         
         let githubInfo = 
@@ -289,7 +290,8 @@ let main args =
 
 
         let outputPath = Path.Combine(workdir, "bin", "pack")
-        if File.Exists dependenciesPath && File.Exists releaseNotesPath  then
+
+        if doBuild && File.Exists dependenciesPath && File.Exists releaseNotesPath  then
             
             let version, releaseNotes =
                 match releaseNotes with
@@ -336,7 +338,6 @@ let main args =
                         with _ -> ()
             
         Log.stop()
-
         
         let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
         if not (isNull token) then
@@ -381,7 +382,7 @@ let main args =
 
                 match githubInfo, releaseNotes with
                 | Some (user, repo), Some notes ->
-                    let packages = Directory.GetFiles(outputPath, "*.nupkg")
+                    let packages = if doBuild then Directory.GetFiles(outputPath, "*.nupkg") else (files |> List.toArray)
                     Log.start "%d files" packages.Length
                     for file in packages do
                         Log.line "%s" (Path.Relative(file, workdir))

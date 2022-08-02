@@ -1,3 +1,6 @@
+### 1.0.13
+* aardpack: added --nobuild option (will pack existing artifacts supplied as paths)
+
 ### 1.0.12
 * fixed AssemblyResolve problem
 
