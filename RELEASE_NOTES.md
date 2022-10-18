@@ -1,3 +1,6 @@
+### 1.0.14
+* aardpack: added --parseonly option only printing the version to stdout
+
 ### 1.0.13
 * aardpack: added --nobuild option (will pack existing artifacts supplied as paths)
 

@@ -224,6 +224,9 @@ let main args =
     let createRelease =
         args |> Array.forall (fun a -> a <> "--norelease")
 
+    let parseOnly =
+        args |> Array.exists (fun a -> a = "--parseonly")
+        
     let dependenciesPath = 
         Path.Combine(workdir, "paket.dependencies")
 
@@ -232,226 +235,244 @@ let main args =
         |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
         |> Option.defaultValue (Path.Combine(workdir, "RELEASE_NOTES.md"))
 
-    try
-        if doBuild then 
-            Log.start "DotNet:Build"
-            for f in files do
-                Log.start "%s" (Path.Relative(f, workdir))
-                f |> DotNet.build (fun o ->
-                    { o with    
-                        NoLogo = true
-                        Configuration = DotNet.BuildConfiguration.Release
-                        Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
-                    }
-                )
-                Log.stop()
-            Log.stop()
-
         
-        let githubInfo = 
-            let (ret, a, b) = Git.CommandHelper.runGitCommand workdir "remote get-url origin"
-            if ret then
-                match a with
-                | [url] -> 
-                    let m = sshRx.Match url
-                    if m.Success then
-                        Some (m.Groups.[2].Value, m.Groups.[3].Value)
-                    else
-                        let m = httpsRx.Match url
-                        if m.Success then
-                            Some (m.Groups.[2].Value, m.Groups.[3].Value)
-                        else
-                            None
-
-                | _ ->
-                    None
-            else
-                None
-
-        match githubInfo with
-        | Some(user,repo) ->    
-            Log.line "organization: %s" user
-            Log.line "repository:   %s" repo
-        | None ->
-            Log.line "not a github repository"
-
-        Log.start "Paket:Pack"
-
+    if parseOnly then
         let releaseNotes =
             if File.Exists releaseNotesPath then
                 try ReleaseNotes.load releaseNotesPath |> Some
-                with e ->
-                    Log.warn "could not parse %s" (Path.Relative(releaseNotesPath, workdir))
-                    None
+                with e -> None
             else
-                Log.warn "could not find release notes"
                 None
+  
+        match releaseNotes with
+        | Some notes ->
+            printfn "%s" notes.NugetVersion
+        | None ->
+            printfn "0.0.0.0"
+        0
 
+    else
 
-
-        let outputPath = Path.Combine(workdir, "bin", "pack")
-
-        if doBuild && File.Exists dependenciesPath && File.Exists releaseNotesPath  then
-            
-            let version, releaseNotes =
-                match releaseNotes with
-                | Some notes -> 
-                    notes.NugetVersion, notes.Notes
-                | None ->   
-                    Log.warn "using version 0.0.0.0"
-                    "0.0.0.0", []
-            let projectUrl =
-                githubInfo |> Option.map (fun (user, repo) -> 
-                    sprintf "https://github.com/%s/%s/" user repo
-                )
-            
-
-            let deps = 
-                try Paket.Dependencies(dependenciesPath)
-                with e ->   
-                    Log.error "paket error: %A" e
-                    reraise()
-
-            deps.Pack(
-                Path.Combine(workdir, "bin", "pack"),
-                version = version,
-                releaseNotes = String.concat "\r\n" releaseNotes,
-                buildConfig = "Release",
-                interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
-                ?projectUrl = projectUrl
-            )
-
-            let packages =
-                Directory.GetFiles(outputPath, "*.nupkg")
-
-            let packageNameRx = Regex @"^(.*?)\.([0-9]+\.[0-9]+.*)\.nupkg$"
-
-            for path in packages do
-                let m = packageNameRx.Match (Path.GetFileName path)
-                if m.Success then
-                    let id = m.Groups.[1].Value.Trim()
-                    let v = m.Groups.[2].Value.Trim()
-                    if v = version then
-                        Log.line "packed %s (%s)" id v
-                    else
-                        try File.Delete path
-                        with _ -> ()
-            
-        Log.stop()
-        
-        let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
-        if not (isNull token) then
-            if createTag then
-                Log.start "Git:Tag"
-
-                Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
-                Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
-
-                let tagIsNew = 
-                    match releaseNotes with
-                    | Some notes ->
-                        if Directory.Exists(Path.Combine(workdir, ".git")) then
-                            try 
-                                Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
-                                true
-                            with _ -> 
-                                Log.warn "tag %A already exists" notes.NugetVersion
-                                false
-                        else
-                            Log.warn "cannot tag, not a git repository"
-                            false
-
-                    | None ->   
-                        Log.warn "no version"
-                        false
-
-                if tagIsNew then
-                    Git.CommandHelper.directRunGitCommandAndFail workdir "push --tags"
-
+        try
+            if doBuild then 
+                Log.start "DotNet:Build"
+                for f in files do
+                    Log.start "%s" (Path.Relative(f, workdir))
+                    f |> DotNet.build (fun o ->
+                        { o with    
+                            NoLogo = true
+                            Configuration = DotNet.BuildConfiguration.Release
+                            Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
+                        }
+                    )
+                    Log.stop()
                 Log.stop()
 
+        
+            let githubInfo = 
+                let (ret, a, b) = Git.CommandHelper.runGitCommand workdir "remote get-url origin"
+                if ret then
+                    match a with
+                    | [url] -> 
+                        let m = sshRx.Match url
+                        if m.Success then
+                            Some (m.Groups.[2].Value, m.Groups.[3].Value)
+                        else
+                            let m = httpsRx.Match url
+                            if m.Success then
+                                Some (m.Groups.[2].Value, m.Groups.[3].Value)
+                            else
+                                None
 
-            if createRelease then
-                Log.start "Github:Release"
+                    | _ ->
+                        None
+                else
+                    None
+
+            match githubInfo with
+            | Some(user,repo) ->    
+                Log.line "organization: %s" user
+                Log.line "repository:   %s" repo
+            | None ->
+                Log.line "not a github repository"
+
+            Log.start "Paket:Pack"
+
+            let releaseNotes =
+                if File.Exists releaseNotesPath then
+                    try ReleaseNotes.load releaseNotesPath |> Some
+                    with e ->
+                        Log.warn "could not parse %s" (Path.Relative(releaseNotesPath, workdir))
+                        None
+                else
+                    Log.warn "could not find release notes"
+                    None
 
 
-                let hash = 
-                    match Git.CommandHelper.runGitCommand workdir "rev-parse HEAD" with
-                    | (true, [hash], _) -> Some hash
-                    | _ -> None
 
-                match githubInfo, releaseNotes with
-                | Some (user, repo), Some notes ->
-                    let packages = if doBuild then Directory.GetFiles(outputPath, "*.nupkg") else (files |> List.toArray)
-                    Log.start "%d files" packages.Length
-                    for file in packages do
-                        Log.line "%s" (Path.Relative(file, workdir))
+            let outputPath = Path.Combine(workdir, "bin", "pack")
+
+            if doBuild && File.Exists dependenciesPath && File.Exists releaseNotesPath  then
+            
+                let version, releaseNotes =
+                    match releaseNotes with
+                    | Some notes -> 
+                        notes.NugetVersion, notes.Notes
+                    | None ->   
+                        Log.warn "using version 0.0.0.0"
+                        "0.0.0.0", []
+                let projectUrl =
+                    githubInfo |> Option.map (fun (user, repo) -> 
+                        sprintf "https://github.com/%s/%s/" user repo
+                    )
+            
+
+                let deps = 
+                    try Paket.Dependencies(dependenciesPath)
+                    with e ->   
+                        Log.error "paket error: %A" e
+                        reraise()
+
+                deps.Pack(
+                    Path.Combine(workdir, "bin", "pack"),
+                    version = version,
+                    releaseNotes = String.concat "\r\n" releaseNotes,
+                    buildConfig = "Release",
+                    interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
+                    ?projectUrl = projectUrl
+                )
+
+                let packages =
+                    Directory.GetFiles(outputPath, "*.nupkg")
+
+                let packageNameRx = Regex @"^(.*?)\.([0-9]+\.[0-9]+.*)\.nupkg$"
+
+                for path in packages do
+                    let m = packageNameRx.Match (Path.GetFileName path)
+                    if m.Success then
+                        let id = m.Groups.[1].Value.Trim()
+                        let v = m.Groups.[2].Value.Trim()
+                        if v = version then
+                            Log.line "packed %s (%s)" id v
+                        else
+                            try File.Delete path
+                            with _ -> ()
+            
+            Log.stop()
+        
+            let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
+            if not (isNull token) then
+                if createTag then
+                    Log.start "Git:Tag"
+
+                    Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
+                    Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
+
+                    let tagIsNew = 
+                        match releaseNotes with
+                        | Some notes ->
+                            if Directory.Exists(Path.Combine(workdir, ".git")) then
+                                try 
+                                    Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
+                                    true
+                                with _ -> 
+                                    Log.warn "tag %A already exists" notes.NugetVersion
+                                    false
+                            else
+                                Log.warn "cannot tag, not a git repository"
+                                false
+
+                        | None ->   
+                            Log.warn "no version"
+                            false
+
+                    if tagIsNew then
+                        Git.CommandHelper.directRunGitCommandAndFail workdir "push --tags"
+
                     Log.stop()
 
 
-                    let oo = Console.Out
-                    let oe = Console.Error
-                    use o = new ObservableTextWriter()
-                    use e = new ObservableTextWriter()
+                if createRelease then
+                    Log.start "Github:Release"
 
-                    o.Add (fun l ->
-                        Log.line "%s" l
-                    )
+
+                    let hash = 
+                        match Git.CommandHelper.runGitCommand workdir "rev-parse HEAD" with
+                        | (true, [hash], _) -> Some hash
+                        | _ -> None
+
+                    match githubInfo, releaseNotes with
+                    | Some (user, repo), Some notes ->
+                        let packages = if doBuild then Directory.GetFiles(outputPath, "*.nupkg") else (files |> List.toArray)
+                        Log.start "%d files" packages.Length
+                        for file in packages do
+                            Log.line "%s" (Path.Relative(file, workdir))
+                        Log.stop()
+
+
+                        let oo = Console.Out
+                        let oe = Console.Error
+                        use o = new ObservableTextWriter()
+                        use e = new ObservableTextWriter()
+
+                        o.Add (fun l ->
+                            Log.line "%s" l
+                        )
                     
-                    e.Add (fun l ->
-                        Log.error "%s" l
-                    )
+                        e.Add (fun l ->
+                            Log.error "%s" l
+                        )
 
-                    try
-                        Console.SetOut o
-                        Console.SetError e
                         try
-                            let client = GitHub.createClientWithToken token
+                            Console.SetOut o
+                            Console.SetError e
+                            try
+                                let client = GitHub.createClientWithToken token
 
-                            let oldRelease =
-                                try
-                                    GitHub.getReleaseByTag user repo notes.NugetVersion client
+                                let oldRelease =
+                                    try
+                                        GitHub.getReleaseByTag user repo notes.NugetVersion client
+                                        |> Async.RunSynchronously
+                                        |> Some
+                                    with _ ->
+                                        None
+
+                                match oldRelease with
+                                | Some _rel ->   
+                                    Log.warn "release %s already exists" notes.NugetVersion
+                                | None ->   
+                                    client
+                                    |> GitHub.createRelease user repo notes.NugetVersion (fun p ->
+                                        { 
+                                            Name = notes.NugetVersion
+                                            TargetCommitish = match hash with | Some h -> h | None -> p.TargetCommitish
+                                            Draft = true
+                                            Prerelease = notes.SemVer.PreRelease |> Option.isSome
+                                            Body = String.concat "\r\n" notes.Notes
+                                        }
+                                    )
+                                    |> GitHub.uploadFiles packages
+                                    |> GitHub.publishDraft
                                     |> Async.RunSynchronously
-                                    |> Some
-                                with _ ->
-                                    None
+                            finally
+                                Console.SetOut oo
+                                Console.SetError oe
+                        with e ->
+                            Log.error "failed: %A" e
+                            exit -1
+                    | _ ->  
+                        ()
 
-                            match oldRelease with
-                            | Some _rel ->   
-                                Log.warn "release %s already exists" notes.NugetVersion
-                            | None ->   
-                                client
-                                |> GitHub.createRelease user repo notes.NugetVersion (fun p ->
-                                    { 
-                                        Name = notes.NugetVersion
-                                        TargetCommitish = match hash with | Some h -> h | None -> p.TargetCommitish
-                                        Draft = true
-                                        Prerelease = notes.SemVer.PreRelease |> Option.isSome
-                                        Body = String.concat "\r\n" notes.Notes
-                                    }
-                                )
-                                |> GitHub.uploadFiles packages
-                                |> GitHub.publishDraft
-                                |> Async.RunSynchronously
-                        finally
-                            Console.SetOut oo
-                            Console.SetError oe
-                    with e ->
-                        Log.error "failed: %A" e
-                        exit -1
-                | _ ->  
-                    ()
-
-                Log.stop()
+                    Log.stop()
+                else
+                    Log.warn "not publishing, unchanged version"
             else
-                Log.warn "not publishing, unchanged version"
-        else
-            Log.warn "not publishing, no github token"
+                Log.warn "not publishing, no github token"
 
-        Log.line "finished in %A" sw.Elapsed
+            Log.line "finished in %A" sw.Elapsed
 
 
-        0
-    with e ->   
-        Log.error "unknown error: %A" e
-        -1
+            0
+        with e ->   
+            Log.error "unknown error: %A" e
+            -1
