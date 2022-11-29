@@ -1,35 +1,12 @@
 namespace Aardvark.Build
 
-open System
 open Microsoft.Build.Utilities
 open Microsoft.Build.Framework
 open System.IO
-open System.Threading
 open Aardvark.Build
-open System.Xml
-open System.Xml.Linq
-open Paket
-open Paket.Core
-open Paket.Domain
-open System.Reflection
-open System.Threading
+open System.Diagnostics
 
-type ReadReleaseNotes() =
-    static member ReadReleaseNotes(fileName : string) : Option<string * string * string> =
-        let releaseNotes =
-            try Some (Fake.Core.ReleaseNotes.load fileName)
-            with _ -> None
-
-        match releaseNotes with
-        | Some n -> 
-            let nugetVersion = n.NugetVersion
-            let assemblyVersion = sprintf "%d.%d.0.0" n.SemVer.Major n.SemVer.Minor
-            let notes = n.Notes |> String.concat "\n" 
-            (nugetVersion, assemblyVersion, notes) |> Some
-        | _ -> 
-            None
-
-// special tpye to wrap the execute method to make the task robust against missing method exceptions etc.
+// special tpye to wrap the execute method to make the task robust against missing method exceptions etc. (See https://github.com/aardvark-platform/aardvark.build/issues/3)
 type ReleaseNotesTaskImpl() =
 
     static member Execute(task : ReleaseNotesTask) =
@@ -52,11 +29,14 @@ type ReleaseNotesTaskImpl() =
                     match path with
                     | Some path ->  
                         try 
-                            let ads = new AppDomain()
-
-                            //ads.ApplicationBase <- AppDomain.CurrentDomain.BaseDirectory;
                             ReadReleaseNotes.ReadReleaseNotes path
-                        with _ -> None
+                        with e -> 
+                            if task.AttachDebuggerOnError then 
+                                Debugger.Launch() |> ignore
+                                Debugger.Break()
+                                None
+                            else 
+                                None
                     | None ->
                         None
 

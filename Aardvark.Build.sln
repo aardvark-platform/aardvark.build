@@ -1,19 +1,18 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30114.105
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.fsproj", "{518D3A53-7FFE-466C-97DC-8B7D41A453CA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.fsproj", "{518D3A53-7FFE-466C-97DC-8B7D41A453CA}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "aardpack", "aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "aardpack", "aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Aardvark.Build.Lib", "Aardvark.Build.Lib\Aardvark.Build.Lib.fsproj", "{5E39EBEB-FAA2-4A4C-8FF4-1F4354513996}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{518D3A53-7FFE-466C-97DC-8B7D41A453CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -24,5 +23,15 @@ Global
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E39EBEB-FAA2-4A4C-8FF4-1F4354513996}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E39EBEB-FAA2-4A4C-8FF4-1F4354513996}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E39EBEB-FAA2-4A4C-8FF4-1F4354513996}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E39EBEB-FAA2-4A4C-8FF4-1F4354513996}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {52BC1E73-6F8D-4376-AEDF-8B61E1324724}
 	EndGlobalSection
 EndGlobal
