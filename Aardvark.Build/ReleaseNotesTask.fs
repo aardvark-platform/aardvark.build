@@ -12,6 +12,7 @@ open Paket
 open Paket.Core
 open Paket.Domain
 open System.Reflection
+open System.Threading
 
 type ReadReleaseNotes() =
     static member ReadReleaseNotes(fileName : string) : Option<string * string * string> =
@@ -35,7 +36,8 @@ type ReleaseNotesTaskImpl() =
         if task.DesignTime then
             true
         else
-            let projDir = Path.GetDirectoryName task.ProjectPath
+            let path : string = task.ProjectPath // workaround for type inference problem
+            let projDir = Path.GetDirectoryName(path)
             let root =
                 if System.String.IsNullOrWhiteSpace task.RepositoryRoot then Tools.findProjectRoot projDir
                 elif Directory.Exists task.RepositoryRoot then Some task.RepositoryRoot
@@ -50,7 +52,8 @@ type ReleaseNotesTaskImpl() =
                     match path with
                     | Some path ->  
                         try 
-                            //let ads = new AppDomainSetup();
+                            let ads = new AppDomain()
+
                             //ads.ApplicationBase <- AppDomain.CurrentDomain.BaseDirectory;
                             ReadReleaseNotes.ReadReleaseNotes path
                         with _ -> None
