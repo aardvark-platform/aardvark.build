@@ -11,7 +11,22 @@ open System.Xml.Linq
 open Paket
 open Paket.Core
 open Paket.Domain
+open System.Reflection
 
+type ReadReleaseNotes() =
+    static member ReadReleaseNotes(fileName : string) : Option<string * string * string> =
+        let releaseNotes =
+            try Some (Fake.Core.ReleaseNotes.load fileName)
+            with _ -> None
+
+        match releaseNotes with
+        | Some n -> 
+            let nugetVersion = n.NugetVersion
+            let assemblyVersion = sprintf "%d.%d.0.0" n.SemVer.Major n.SemVer.Minor
+            let notes = n.Notes |> String.concat "\n" 
+            (nugetVersion, assemblyVersion, notes) |> Some
+        | _ -> 
+            None
 
 // special tpye to wrap the execute method to make the task robust against missing method exceptions etc.
 type ReleaseNotesTaskImpl() =
@@ -34,16 +49,19 @@ type ReleaseNotesTaskImpl() =
 
                     match path with
                     | Some path ->  
-                        try Some (Fake.Core.ReleaseNotes.load path)
+                        try 
+                            //let ads = new AppDomainSetup();
+                            //ads.ApplicationBase <- AppDomain.CurrentDomain.BaseDirectory;
+                            ReadReleaseNotes.ReadReleaseNotes path
                         with _ -> None
                     | None ->
                         None
 
                 match releaseNotes with
-                | Some n -> 
-                    task.NugetVersion <- n.NugetVersion
-                    task.AssemblyVersion <- sprintf "%d.%d.0.0" n.SemVer.Major n.SemVer.Minor
-                    task.ReleaseNotes <- n.Notes |> String.concat "\n" 
+                | Some (nugetVersion, assemblyVersion, notes) -> 
+                    task.NugetVersion <- nugetVersion
+                    task.AssemblyVersion <- assemblyVersion
+                    task.ReleaseNotes <- notes
                     true
                 | None ->
                     task.Log.LogWarning "No release notes found: version will be 1.0.0.0. consider adding a RELEASE_NOTES.md to your repository root."
