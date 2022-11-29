@@ -1,26 +1,20 @@
 namespace Aardvark.Build
 
-open System
 open Microsoft.Build.Utilities
 open Microsoft.Build.Framework
 open System.IO
-open System.Threading
 open Aardvark.Build
-open System.Xml
-open System.Xml.Linq
-open Paket
-open Paket.Core
-open Paket.Domain
+open System.Diagnostics
 
-
-// special tpye to wrap the execute method to make the task robust against missing method exceptions etc.
+// special tpye to wrap the execute method to make the task robust against missing method exceptions etc. (See https://github.com/aardvark-platform/aardvark.build/issues/3)
 type ReleaseNotesTaskImpl() =
 
     static member Execute(task : ReleaseNotesTask) =
         if task.DesignTime then
             true
         else
-            let projDir = Path.GetDirectoryName task.ProjectPath
+            let path : string = task.ProjectPath // workaround for type inference problem
+            let projDir = Path.GetDirectoryName(path)
             let root =
                 if System.String.IsNullOrWhiteSpace task.RepositoryRoot then Tools.findProjectRoot projDir
                 elif Directory.Exists task.RepositoryRoot then Some task.RepositoryRoot
@@ -34,16 +28,23 @@ type ReleaseNotesTaskImpl() =
 
                     match path with
                     | Some path ->  
-                        try Some (Fake.Core.ReleaseNotes.load path)
-                        with _ -> None
+                        try 
+                            ReadReleaseNotes.ReadReleaseNotes path
+                        with e -> 
+                            if task.AttachDebuggerOnError then 
+                                Debugger.Launch() |> ignore
+                                Debugger.Break()
+                                None
+                            else 
+                                None
                     | None ->
                         None
 
                 match releaseNotes with
-                | Some n -> 
-                    task.NugetVersion <- n.NugetVersion
-                    task.AssemblyVersion <- sprintf "%d.%d.0.0" n.SemVer.Major n.SemVer.Minor
-                    task.ReleaseNotes <- n.Notes |> String.concat "\n" 
+                | Some (nugetVersion, assemblyVersion, notes) -> 
+                    task.NugetVersion <- nugetVersion
+                    task.AssemblyVersion <- assemblyVersion
+                    task.ReleaseNotes <- notes
                     true
                 | None ->
                     task.Log.LogWarning "No release notes found: version will be 1.0.0.0. consider adding a RELEASE_NOTES.md to your repository root."
