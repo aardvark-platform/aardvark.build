@@ -1,3 +1,6 @@
+### 1.0.15
+* ReleaseNotesTask is now more robust and debuggable.
+
 ### 1.0.14
 * aardpack: added --parseonly option only printing the version to stdout
 

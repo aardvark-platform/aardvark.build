@@ -13,7 +13,49 @@ open Paket.Core
 open Paket.Domain
 
 
-type ReleaseNotesTask() as this =
+// special tpye to wrap the execute method to make the task robust against missing method exceptions etc.
+type ReleaseNotesTaskImpl() =
+
+    static member Execute(task : ReleaseNotesTask) =
+        if task.DesignTime then
+            true
+        else
+            let projDir = Path.GetDirectoryName task.ProjectPath
+            let root =
+                if System.String.IsNullOrWhiteSpace task.RepositoryRoot then Tools.findProjectRoot projDir
+                elif Directory.Exists task.RepositoryRoot then Some task.RepositoryRoot
+                else None
+
+            match root with
+            | Some rootDir ->
+                let releaseNotes =
+                    let path = 
+                        Directory.GetFiles(rootDir, "*") |> Array.tryFind Tools.isReleaseNotesFile
+
+                    match path with
+                    | Some path ->  
+                        try Some (Fake.Core.ReleaseNotes.load path)
+                        with _ -> None
+                    | None ->
+                        None
+
+                match releaseNotes with
+                | Some n -> 
+                    task.NugetVersion <- n.NugetVersion
+                    task.AssemblyVersion <- sprintf "%d.%d.0.0" n.SemVer.Major n.SemVer.Minor
+                    task.ReleaseNotes <- n.Notes |> String.concat "\n" 
+                    true
+                | None ->
+                    task.Log.LogWarning "No release notes found: version will be 1.0.0.0. consider adding a RELEASE_NOTES.md to your repository root."
+                    task.NugetVersion <- "1.0.0.0"
+                    task.AssemblyVersion <- "1.0.0.0"
+                    task.ReleaseNotes <- ""
+                    true
+            | None ->
+                task.Log.LogWarning "Could not find repository root (please specify RepositoryRoot Property)"   
+                true
+
+and ReleaseNotesTask() as this =
     inherit Task()
 
 
@@ -23,6 +65,7 @@ type ReleaseNotesTask() as this =
     let mutable assemblyVersion = ""
     let mutable repoRoot = ""
     let mutable notes = ""
+    let mutable attachDebuggerOnError = false
 
     do Tools.boot this.Log
 
@@ -33,6 +76,10 @@ type ReleaseNotesTask() as this =
     member x.DesignTime
         with get() = designTime
         and set d = designTime <- d
+
+    member x.AttachDebuggerOnError
+        with get() = attachDebuggerOnError
+        and set d = attachDebuggerOnError <- d
          
     [<Required>]
     member x.ProjectPath
@@ -55,40 +102,21 @@ type ReleaseNotesTask() as this =
         and set d = notes <- d
 
     override x.Execute() =  
-        if designTime then
+        if designTime then 
             true
-        else
-            let projDir = Path.GetDirectoryName projectPath
-            let root =
-                if System.String.IsNullOrWhiteSpace repoRoot then Tools.findProjectRoot projDir
-                elif Directory.Exists repoRoot then Some repoRoot
-                else None
-
-            match root with
-            | Some rootDir ->
-                let releaseNotes =
-                    let path = 
-                        Directory.GetFiles(rootDir, "*") |> Array.tryFind Tools.isReleaseNotesFile
-
-                    match path with
-                    | Some path ->  
-                        try Some (Fake.Core.ReleaseNotes.load path)
-                        with _ -> None
-                    | None ->
-                        None
-
-                match releaseNotes with
-                | Some n -> 
-                    nugetVersion <- n.NugetVersion
-                    assemblyVersion <- sprintf "%d.%d.0.0" n.SemVer.Major n.SemVer.Minor
-                    notes <- n.Notes |> String.concat "\n" 
-                    true
-                | None ->
-                    x.Log.LogWarning "No release notes found: version will be 1.0.0.0. consider adding a RELEASE_NOTES.md to your repository root."
-                    nugetVersion <- "1.0.0.0"
-                    assemblyVersion <- "1.0.0.0"
-                    notes <- ""
-                    true
-            | None ->
-                x.Log.LogWarning "Could not find repository root (please specify RepositoryRoot Property)"   
-                true
+        else 
+            try
+                ReleaseNotesTaskImpl.Execute(x)
+            with e -> 
+                try
+                    x.Log.LogWarning "ReleaseNotesTaskImpl failed." 
+                    x.Log.LogWarning (sprintf "ReleaseNotesTaskImpl failed: %A" e) 
+                with e -> 
+                    // logging failed. no idea what to do... fails anyways.
+                    ()
+                if x.AttachDebuggerOnError then 
+                    System.Diagnostics.Debugger.Launch() |> ignore
+                    System.Diagnostics.Debugger.Break()
+                    false
+                else    
+                    false

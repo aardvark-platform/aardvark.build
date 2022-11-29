@@ -2,7 +2,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <UsingTask TaskName="Aardvark.Build.ReleaseNotesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
   <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild"> 
-    <ReleaseNotesTask DesignTime="$(DesignTimeBuild)" RepositoryRoot="$(RepositoryRoot)" ProjectPath="$(MSBuildProjectFullPath)">
+    <ReleaseNotesTask DesignTime="$(DesignTimeBuild)" RepositoryRoot="$(RepositoryRoot)" ProjectPath="$(MSBuildProjectFullPath)" AttachDebuggerOnError="$(AttachDebuggerOnError)">
       <Output TaskParameter="NugetVersion" PropertyName="NugetVersion"/>
       <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion"/>
       <Output TaskParameter="ReleaseNotes" PropertyName="ReleaseNotes"/>
