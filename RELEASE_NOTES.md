@@ -1,4 +1,7 @@
 ### 1.0.15
+* ReleaseNotesTask now works on visual studio 2022.
+
+### 1.0.15
 * ReleaseNotesTask is now more robust and debuggable.
 
 ### 1.0.14
