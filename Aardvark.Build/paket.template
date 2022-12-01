@@ -19,3 +19,4 @@ files
   ../bin/Release/netstandard2.0/Mono.Cecil.Rocks.dll ==> build
   ../bin/Release/netstandard2.0/Aardvark.Build.dll ==> build
   ../bin/Release/netstandard2.0/Aardvark.Build.targets ==> build
+  ../bin/Release/netstandard2.0/Aardvark.Build.Lib.dll  ==> build

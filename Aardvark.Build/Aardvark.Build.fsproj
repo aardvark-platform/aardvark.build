@@ -6,23 +6,24 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
   </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\bin\Debug</OutputPath>
+    <OtherFlags></OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>..\bin\Release</OutputPath>
+    <OtherFlags></OtherFlags>
   </PropertyGroup>
   <ItemGroup>
     <None Include="Aardvark.Build.targets" CopyToOutputDirectory="Always" />
     <Compile Include="Utilities.fs" />
+    <Compile Include="ReleaseNotes.fs" />
     <Compile Include="ReleaseNotesTask.fs" />
     <Compile Include="NativeDependencyTask.fs" />
     <Compile Include="PaketPackTask.fs" />
     <Compile Include="LocalPackageOverrideTask.fs" />
     <None Include="paket.references" CopyToOutputDirectory="Never" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Aardvark.Build.Lib\Aardvark.Build.Lib.fsproj" />
   </ItemGroup>
   <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\bin\Debug\netstandard2.0\Aardvark.Build.targets')" />
   <Import Project="..\.paket\Paket.Restore.targets" />

@@ -6,6 +6,10 @@ open System.IO
 open Aardvark.Build
 open System.Diagnostics
 
+open System.Runtime
+
+
+
 // special tpye to wrap the execute method to make the task robust against missing method exceptions etc. (See https://github.com/aardvark-platform/aardvark.build/issues/3)
 type ReleaseNotesTaskImpl() =
 
@@ -29,7 +33,19 @@ type ReleaseNotesTaskImpl() =
                     match path with
                     | Some path ->  
                         try 
-                            ReadReleaseNotes.ReadReleaseNotes path
+                            let a = typeof<Fake.Core.ReleaseNotes.ReleaseNotes>.Assembly
+
+                            // this is a workaround for https://github.com/aardvark-platform/aardvark.build/issues/3
+                            // unfortunately, the AssemblyLoadContext does not work since visual studio seems to run in .net framework.
+                            let ass = typeof<ReleaseNotesTaskImpl>.Assembly
+                            let instance = ass.CreateInstance("Aardvark.Build.ReadReleaseNotes") 
+                            let m =
+                                instance.GetType().GetMethod(
+                                    "ReadReleaseNotes", 
+                                    System.Reflection.BindingFlags.Static ||| System.Reflection.BindingFlags.Public
+                                )
+                            let r = m.Invoke(null, [|path|]) |> unbox<string * string * string>
+                            Some r
                         with e -> 
                             if task.AttachDebuggerOnError then 
                                 Debugger.Launch() |> ignore

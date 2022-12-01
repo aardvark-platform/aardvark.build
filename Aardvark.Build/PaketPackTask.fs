@@ -6,11 +6,6 @@ open Microsoft.Build.Framework
 open System.IO
 open System.Threading
 open Aardvark.Build
-open System.Xml
-open System.Xml.Linq
-open Paket
-open Paket.Core
-open Paket.Domain
 open System.Diagnostics
 
 type PaketPackTask() as this =
