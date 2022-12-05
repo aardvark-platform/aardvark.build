@@ -7,5 +7,6 @@ obj/
 .DS_Store
 /.vs
 /.ionide
-/Test/.vs/Test/v17/*.suo
-/Test/.vs/Test/v17/*.v2
+**/.vs
+/getversion/bin/**
+/.version

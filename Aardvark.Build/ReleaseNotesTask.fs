@@ -6,11 +6,8 @@ open System.IO
 open Aardvark.Build
 open System.Diagnostics
 
-open System.Runtime
 
-
-
-// special tpye to wrap the execute method to make the task robust against missing method exceptions etc. (See https://github.com/aardvark-platform/aardvark.build/issues/3)
+// special type to wrap the execute method to make the task robust against missing method exceptions etc. (See https://github.com/aardvark-platform/aardvark.build/issues/3)
 type ReleaseNotesTaskImpl() =
 
     static member Execute(task : ReleaseNotesTask) =
@@ -33,20 +30,9 @@ type ReleaseNotesTaskImpl() =
                     match path with
                     | Some path ->  
                         try 
-                            let a = typeof<Fake.Core.ReleaseNotes.ReleaseNotes>.Assembly
-
-                            // this is a workaround for https://github.com/aardvark-platform/aardvark.build/issues/3
-                            // unfortunately, the AssemblyLoadContext does not work since visual studio seems to run in .net framework.
-                            let ass = typeof<ReleaseNotesTaskImpl>.Assembly
-                            let instance = ass.CreateInstance("Aardvark.Build.ReadReleaseNotes") 
-                            let m =
-                                instance.GetType().GetMethod(
-                                    "ReadReleaseNotes", 
-                                    System.Reflection.BindingFlags.Static ||| System.Reflection.BindingFlags.Public
-                                )
-                            let r = m.Invoke(null, [|path|]) |> unbox<string * string * string>
-                            Some r
+                            ReleaseNotes.StandaloneImpl.parseReleaseNotes path 
                         with e -> 
+                            task.Log.LogWarning (sprintf "could not parse release notes, using version 1.0.0.0 as a fallback. The exception was: %A" e)
                             if task.AttachDebuggerOnError then 
                                 Debugger.Launch() |> ignore
                                 Debugger.Break()
@@ -57,7 +43,7 @@ type ReleaseNotesTaskImpl() =
                         None
 
                 match releaseNotes with
-                | Some (nugetVersion, assemblyVersion, notes) -> 
+                | Some { nugetVersion = nugetVersion; assemblyVersion = assemblyVersion; releaseNotes = notes } -> 
                     task.NugetVersion <- nugetVersion
                     task.AssemblyVersion <- assemblyVersion
                     task.ReleaseNotes <- notes
@@ -134,6 +120,6 @@ and ReleaseNotesTask() as this =
                 if x.AttachDebuggerOnError then 
                     System.Diagnostics.Debugger.Launch() |> ignore
                     System.Diagnostics.Debugger.Break()
-                    false
+                    false 
                 else    
                     false

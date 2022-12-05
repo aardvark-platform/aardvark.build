@@ -7,6 +7,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build", "Aardvark.
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "aardpack", "aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Tests\Tests.fsproj", "{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8949BA35-8833-4704-9054-A8B1212714F3}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +28,10 @@ Global
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

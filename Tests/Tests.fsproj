@@ -1,10 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <PackAsTool>true</PackAsTool>
-    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\bin\Debug</OutputPath>
@@ -13,9 +11,13 @@
     <OutputPath>..\bin\Release</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Program.fs" />
     <None Include="paket.references" />
+    <Compile Include="..\Aardvark.Build\ReleaseNotes.fs"/>
+    <Compile Include="Library.fs" />
+    
   </ItemGroup>
-  <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\bin\Debug\netstandard2.0\Aardvark.Build.targets')" />
+  <ItemGroup>
+    <ProjectReference Include="..\Aardvark.Build\Aardvark.Build.fsproj" />
+  </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
