@@ -30,6 +30,5 @@
     <None Include="paket.template" CopyToOutputDirectory="Never" />
   </ItemGroup>
   <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\bin\Debug\netstandard2.0\Aardvark.Build.targets')" />
-  <Import Project="./Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('./Aardvark.Build.targets')" />
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

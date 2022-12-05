@@ -1,5 +1,5 @@
 ### 1.0.18
-* ReleaseNotesTask finally works in newest visual studio 2022 preview
+* ReleaseNotesTask finally works in newest visual studio 2022 preview 
 
 ### 1.0.17
 * version bump
