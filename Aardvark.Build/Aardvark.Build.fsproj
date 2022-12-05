@@ -17,9 +17,11 @@
     <OtherFlags>--standalone </OtherFlags>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Fake.String.fs" />
+    <Compile Include="Fake.SemVer.fs" />
+    <Compile Include="Fake.ReleaseNotes.fs" />
     <None Include="Aardvark.Build.targets" CopyToOutputDirectory="Always" />
     <Compile Include="Utilities.fs" />
-    <Compile Include="ReleaseNotes.fs" />
     <Compile Include="ReleaseNotesTask.fs" />
     <Compile Include="NativeDependencyTask.fs" />
     <Compile Include="PaketPackTask.fs" />

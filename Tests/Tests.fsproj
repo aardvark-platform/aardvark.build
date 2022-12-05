@@ -12,7 +12,6 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
-    <Compile Include="..\Aardvark.Build\ReleaseNotes.fs"/>
     <Compile Include="Library.fs" />
     
   </ItemGroup>

@@ -30,7 +30,12 @@ type ReleaseNotesTaskImpl() =
                     match path with
                     | Some path ->  
                         try 
-                            ReleaseNotes.StandaloneImpl.parseReleaseNotes path 
+                            //ReleaseNotes.StandaloneImpl.parseReleaseNotes path 
+                            let releaseNotes = Fake.Core.ReleaseNotes.load path
+                            let nugetVersion = releaseNotes.NugetVersion
+                            let assemblyVersion = sprintf "%d.%d.0.0" releaseNotes.SemVer.Major releaseNotes.SemVer.Minor
+                            let notes = releaseNotes.Notes |> String.concat "\n" 
+                            (nugetVersion, assemblyVersion, notes) |> Some
                         with e -> 
                             task.Log.LogWarning (sprintf "could not parse release notes, using version 1.0.0.0 as a fallback. The exception was: %A" e)
                             if task.AttachDebuggerOnError then 
@@ -43,7 +48,7 @@ type ReleaseNotesTaskImpl() =
                         None
 
                 match releaseNotes with
-                | Some { nugetVersion = nugetVersion; assemblyVersion = assemblyVersion; releaseNotes = notes } -> 
+                | Some (nugetVersion, assemblyVersion, notes) -> 
                     task.NugetVersion <- nugetVersion
                     task.AssemblyVersion <- assemblyVersion
                     task.ReleaseNotes <- notes
