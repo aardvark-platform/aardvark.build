@@ -466,7 +466,7 @@ let main args =
                     Log.stop()
                 else
                     Log.warn "not publishing, unchanged version"
-            else
+            elif createTag || createRelease then
                 Log.warn "not publishing, no github token"
 
             Log.line "finished in %A" sw.Elapsed
