@@ -1,6 +1,6 @@
 source https://api.nuget.org/v3/index.json
 redirects: off
-framework: netstandard2.0, net6.0, netstandard2.1
+framework: auto-detect
 storage: none
 
 nuget FSharp.Core >= 6.0.3 lowest_matching: true
@@ -11,10 +11,10 @@ nuget Microsoft.Build.Tasks.Core     ~> 17.0.0
 nuget Microsoft.Build.Framework      ~> 17.0.0
 nuget Microsoft.Build.Utilities.Core ~> 17.0.0
 
-nuget Fake.Core.ReleaseNotes ~> 6.0.0-alpha004
-nuget Fake.DotNet.Cli        ~> 6.0.0-alpha004
-nuget Fake.Tools.Git         ~> 6.0.0-alpha004
-nuget Fake.Api.GitHub        ~> 6.0.0-alpha004
+nuget Fake.Core.ReleaseNotes ~> 6.0.0
+nuget Fake.DotNet.Cli        ~> 6.0.0
+nuget Fake.Tools.Git         ~> 6.0.0
+nuget Fake.Api.GitHub        ~> 6.0.0
 
 nuget Microsoft.NET.Test.Sdk ~> 15.5.0
 nuget NUnit                  ~> 3.9.0

@@ -259,8 +259,9 @@ let main args =
                 for f in files do
                     Log.start "%s" (Path.Relative(f, workdir))
                     f |> DotNet.build (fun o ->
-                        { o with    
+                        { o with
                             NoLogo = true
+                            MSBuildParams = { o.MSBuildParams with DisableInternalBinLog = true } // https://github.com/fsprojects/FAKE/issues/2595
                             Configuration = DotNet.BuildConfiguration.Release
                             Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
                         }
