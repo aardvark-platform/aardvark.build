@@ -1,3 +1,6 @@
+### 1.0.19
+* Updated FAKE and disable bin logger in aardpack to resolve issue with MSBuild
+
 ### 1.0.18
 * ReleaseNotesTask finally works in newest visual studio 2022 preview 
 
