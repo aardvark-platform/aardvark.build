@@ -1,3 +1,6 @@
+### 1.0.20
+* Ignore readme, license and build scripts for determining root
+
 ### 1.0.19
 * Updated FAKE and disable bin logger in aardpack to resolve issue with MSBuild
 
