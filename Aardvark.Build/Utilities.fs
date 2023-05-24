@@ -205,10 +205,10 @@ module Tools =
         let inline regex pat =
             System.Text.RegularExpressions.Regex("^" + pat + "$", Text.RegularExpressions.RegexOptions.IgnoreCase)
         List.map regex [
-            "license(\.md)?"
-            "readme(\.md)?"
+            //"license(\.md)?"
+            //"readme(\.md)?"
             "paket\.dependencies"
-            "build\.(cmd|bat|ps1|sh)"
+            //"build\.(cmd|bat|ps1|sh)"
             @"release(_|-)?notes(\.md)?"
         ]
 
