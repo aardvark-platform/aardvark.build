@@ -27,7 +27,7 @@ jobs:
       - name: Pack
         shell: cmd
         run: pack.cmd
-      - name: Upload Package
+      - name: Upload Package 
         uses: actions/upload-artifact@v3
         with:
           name: packages
