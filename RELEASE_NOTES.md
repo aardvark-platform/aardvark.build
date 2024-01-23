@@ -1,5 +1,8 @@
+### 1.0.22
+* updated paket (8.0.3)
+
 ### 1.0.21
-* updated paket
+* updated paket (7.2.0)
 
 ### 1.0.20
 * Ignore readme, license and build scripts for determining root

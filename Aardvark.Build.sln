@@ -7,11 +7,19 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build", "Aardvark.
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "aardpack", "aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Tests\Tests.fsproj", "{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Tests", "Tests\Tests.fsproj", "{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8949BA35-8833-4704-9054-A8B1212714F3}"
 	ProjectSection(SolutionItems) = preProject
+		Credits.md = Credits.md
+		global.json = global.json
+		LICENSE = LICENSE
+		pack.cmd = pack.cmd
+		pack.sh = pack.sh
 		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
+		README.md = README.md
+		RELEASE_NOTES.md = RELEASE_NOTES.md
 	EndProjectSection
 EndProject
 Global

@@ -5,8 +5,8 @@ storage: none
 
 nuget FSharp.Core >= 6.0.3 lowest_matching: true
 
-nuget SharpZipLib                    ~> 1.3.3
-nuget Mono.Cecil                     ~> 0.11.4
+nuget SharpZipLib                    ~> 1.4.2
+nuget Mono.Cecil                     ~> 0.11.5
 nuget Microsoft.Build.Tasks.Core     ~> 17.0.0
 nuget Microsoft.Build.Framework      ~> 17.0.0
 nuget Microsoft.Build.Utilities.Core ~> 17.0.0
@@ -16,7 +16,7 @@ nuget Fake.DotNet.Cli        ~> 6.0.0
 nuget Fake.Tools.Git         ~> 6.0.0
 nuget Fake.Api.GitHub        ~> 6.0.0
 
-nuget Paket.Core ~> 7.2.0
+nuget Paket.Core ~> 8.0.3
 
 nuget Microsoft.NET.Test.Sdk ~> 15.5.0
 nuget NUnit                  ~> 3.9.0
