@@ -1,3 +1,8 @@
+### 1.0.23
+- [aardpack] Added --version option
+- [aardpack] Added --dry-run option for testing
+- [aardpack] Added --per-project option to create tags and releases for individual projects. E.g. Aardvark.Base.csproj results in a tag "aardvark.base/1.2.3.4" and a release titled "Aardvark.Base - 1.2.3.4"
+
 ### 1.0.22
 * updated paket (8.0.3)
 
