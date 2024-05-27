@@ -4,6 +4,7 @@ open Fake.DotNet
 open System.IO
 open System
 open System.Text.RegularExpressions
+open System.Collections.Generic
 open Fake.Tools
 open Fake.Api
 open System.Threading.Tasks
@@ -14,7 +15,7 @@ module Log =
     let private out = Console.Out
 
     let private consoleColorSupported =
-    
+
         let o = Console.ForegroundColor
         try
             Console.ForegroundColor <- ConsoleColor.Yellow
@@ -23,7 +24,7 @@ module Log =
             Console.ForegroundColor <- o
 
     let start fmt =
-        fmt |> Printf.kprintf (fun str -> 
+        fmt |> Printf.kprintf (fun str ->
             out.WriteLine("> {0}{1}", indent, str)
             indent <- indent + "  "
         )
@@ -33,12 +34,12 @@ module Log =
         else indent <- ""
 
     let line fmt =
-        fmt |> Printf.kprintf (fun str -> 
+        fmt |> Printf.kprintf (fun str ->
             out.WriteLine("> {0}{1}", indent, str)
         )
-        
+
     let warn fmt =
-        fmt |> Printf.kprintf (fun str -> 
+        fmt |> Printf.kprintf (fun str ->
             let c = Console.ForegroundColor
             try
                 Console.ForegroundColor <- ConsoleColor.Yellow
@@ -50,7 +51,7 @@ module Log =
 
 
     let error fmt =
-        fmt |> Printf.kprintf (fun str -> 
+        fmt |> Printf.kprintf (fun str ->
             let c = Console.ForegroundColor
             try
                 Console.ForegroundColor <- ConsoleColor.Red
@@ -60,12 +61,12 @@ module Log =
                 Console.ForegroundColor <- c
         )
 
-    
+
 type Path with
     static member Relative(path : string, ?baseDir : string) =
         let baseDir = defaultArg baseDir Environment.CurrentDirectory |> Path.GetFullPath
         let path = Path.GetFullPath path
-        if path.StartsWith baseDir then 
+        if path.StartsWith baseDir then
             let rest = path.Substring(baseDir.Length).TrimStart([|Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar|])
             rest
         else
@@ -112,7 +113,7 @@ type ObservableTextWriter() =
     override this.Write(value: uint32) = currentLine.Write(value)
     override this.Write(value: uint64) = currentLine.Write(value)
     override this.WriteAsync(value: char) = currentLine.WriteAsync(value)
-    override this.WriteAsync(buffer: char[], index: int, count: int) = 
+    override this.WriteAsync(buffer: char[], index: int, count: int) =
         let str = System.String(buffer, index, count)
         currentLine.WriteAsync(buffer, index, count)
     override this.WriteAsync(buffer: ReadOnlyMemory<char>, cancellationToken: Threading.CancellationToken) = currentLine.WriteAsync(buffer, cancellationToken)
@@ -168,6 +169,22 @@ type MyWriter() =
         for line in str.Split(x.NewLine) do
             evt.Trigger(line)
 
+[<Literal>]
+let InvalidVersion = "0.0.0.0"
+
+type PackTarget =
+    { Path         : string
+      Version      : string
+      Prerelease   : bool
+      ReleaseNotes : string list
+      TemplateFile : string option
+      ProjectName  : string option }
+
+    member x.HasVersion =
+        x.Version <> InvalidVersion
+
+    member x.GetOutputPath(outputPath: string) =
+        Path.Combine(outputPath, x.ProjectName |> Option.defaultValue "")
 
 [<EntryPoint>]
 let main args =
@@ -183,10 +200,10 @@ let main args =
                     | TraceData.OpenTag(tag, m) ->
                         match tag with
                         | KnownTags.Task _ -> ()
-                        | _ -> Log.start "%s" tag.Name 
+                        | _ -> Log.start "%s" tag.Name
                     | TraceData.CloseTag _ ->
                         Log.stop()
-                    | TraceData.LogMessage(m, _) -> 
+                    | TraceData.LogMessage(m, _) ->
                         Log.line "%s" m
                     | TraceData.ImportantMessage m ->
                         Log.warn "%s" m
@@ -195,18 +212,18 @@ let main args =
                     | TraceData.TraceMessage(m,_) ->
                         Log.line "%s" m
                         ()
-                    | _ ->  
+                    | _ ->
                         ()
             }
         ]
 
     let workdir =
-        args 
+        args
         |> Array.tryFind (fun p -> not (p.StartsWith "-") && Directory.Exists p)
         |> Option.defaultValue Environment.CurrentDirectory
-    
+
     let files =
-        args 
+        args
         |> Array.filter (fun p -> not (p.StartsWith "-") && File.Exists p)
         |> Array.toList
 
@@ -215,46 +232,111 @@ let main args =
         | [] -> [workdir]
         | f -> f
 
-    let doBuild =
-        args |> Array.forall (fun a -> a <> "--nobuild")
+    let hasArgument (name: string) =
+        args |> Array.exists ((=) $"--{name}")
 
+    // If --no-build is specified, build & pack steps will be skipped and the files in arguments will be added to the release directly.
+    let doBuild =
+        not <| (hasArgument "nobuild" || hasArgument "no-build")
+
+    // Note: Github release will create a tag regardless.
     let createTag =
-        args |> Array.forall (fun a -> a <> "--notag")
+        not <| (hasArgument "notag" || hasArgument "no-tag")
+
+    // Do not actually create tags and push packages
+    let dryRun =
+        hasArgument "dry-run" || hasArgument "dryrun"
+
+    // Create a tag and release for each project file specified as argument
+    // E.g. Aardvark.Base.csproj results in a tag aardvark.base/1.2.3.4 and release titled Aardvark.Base - 1.2.3.4
+    let perProject =
+        doBuild && (hasArgument "per-project" || hasArgument "perproject")
 
     let createRelease =
-        args |> Array.forall (fun a -> a <> "--norelease")
+        not <| (hasArgument "norelease" || hasArgument "no-release")
 
     let parseOnly =
-        args |> Array.exists (fun a -> a = "--parseonly")
-        
-    let dependenciesPath = 
+        hasArgument "parseonly" || hasArgument "parse-only"
+
+    let showVersion =
+        hasArgument "version"
+
+    let dependenciesPath =
         Path.Combine(workdir, "paket.dependencies")
 
-    let releaseNotesPath =
-        Directory.GetFiles(workdir, "*") 
-        |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
-        |> Option.defaultValue (Path.Combine(workdir, "RELEASE_NOTES.md"))
+    let tryFindReleaseNotes (quiet: bool) (directory: string) =
+        let rec doit (current: string) =
+            let filePath =
+                Directory.GetFiles(current, "*")
+                |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
 
-        
-    if parseOnly then
-        let releaseNotes =
-            if File.Exists releaseNotesPath then
-                try ReleaseNotes.load releaseNotesPath |> Some
-                with e -> None
+            if filePath.IsSome then filePath
             else
+                let parent = Directory.GetParent current
+                if isNull parent then
+                    if not quiet then
+                        Log.warn "failed to find releases notes for '%s'" directory
+                    None
+                else
+                    doit parent.FullName
+
+        doit directory
+
+    let tryParseReleaseNotes =
+        let cache = Dictionary<string, ReleaseNotes.ReleaseNotes>()
+
+        fun (quiet: bool) (path: string) ->
+            let fi = FileInfo path
+
+            if fi.Exists then
+                match cache.TryGetValue fi.FullName with
+                | (true, notes) -> Some notes
+                | _ ->
+                    try
+                        let notes = ReleaseNotes.load path
+                        cache.[fi.FullName] <- notes
+                        Some notes
+
+                    with _ ->
+                        if not quiet then
+                            Log.warn "could not parse '%s'" (Path.Relative(path, workdir))
+                        None
+            else
+                if not quiet then
+                    Log.warn "could not find release notes in '%s'" (Path.Relative(path, workdir))
                 None
-  
+
+    if showVersion then
+        let asm = System.Reflection.Assembly.GetExecutingAssembly()
+
+        let version =
+            asm.GetCustomAttributes(true)
+            |> Array.tryPick (function
+                | :? System.Reflection.AssemblyInformationalVersionAttribute as att -> Some att.InformationalVersion
+                | _ -> None
+            )
+            |> Option.defaultWith (fun _ ->
+                string <| asm.GetName().Version
+            )
+
+        printfn "aardpack %s" version
+        0
+
+    elif parseOnly then
+        let releaseNotes =
+            tryFindReleaseNotes true workdir
+            |> Option.bind (tryParseReleaseNotes true)
+
         match releaseNotes with
         | Some notes ->
             printfn "%s" notes.NugetVersion
         | None ->
-            printfn "0.0.0.0"
+            printfn "%s" InvalidVersion
         0
 
     else
-
         try
-            if doBuild then 
+            if doBuild then
                 Log.start "DotNet:Build"
                 for f in files do
                     Log.start "%s" (Path.Relative(f, workdir))
@@ -269,12 +351,12 @@ let main args =
                     Log.stop()
                 Log.stop()
 
-        
-            let githubInfo = 
+
+            let githubInfo =
                 let (ret, a, b) = Git.CommandHelper.runGitCommand workdir "remote get-url origin"
                 if ret then
                     match a with
-                    | [url] -> 
+                    | [url] ->
                         let m = sshRx.Match url
                         if m.Success then
                             Some (m.Groups.[2].Value, m.Groups.[3].Value)
@@ -291,7 +373,7 @@ let main args =
                     None
 
             match githubInfo with
-            | Some(user,repo) ->    
+            | Some(user,repo) ->
                 Log.line "organization: %s" user
                 Log.line "repository:   %s" repo
             | None ->
@@ -299,96 +381,136 @@ let main args =
 
             Log.start "Paket:Pack"
 
-            let releaseNotes =
-                if File.Exists releaseNotesPath then
-                    try ReleaseNotes.load releaseNotesPath |> Some
-                    with e ->
-                        Log.warn "could not parse %s" (Path.Relative(releaseNotesPath, workdir))
-                        None
-                else
-                    Log.warn "could not find release notes"
-                    None
+            let targets =
+                files |> List.map (fun f ->
+                    let dir = Path.GetDirectoryName f
 
+                    let version, prerelease, notes =
+                        let releaseNotes =
+                            dir
+                            |> tryFindReleaseNotes false
+                            |> Option.bind (tryParseReleaseNotes false)
 
+                        match releaseNotes with
+                        | Some notes ->
+                            notes.NugetVersion,
+                            notes.SemVer.PreRelease |> Option.isSome,
+                            notes.Notes
+                        | _ ->
+                            InvalidVersion, false, []
+
+                    let projectName =
+                        match Path.GetExtension f with
+                        | ".fsproj" | ".csproj" -> Some <| Path.GetFileNameWithoutExtension f
+                        | _ -> None
+
+                    let template =
+                        let template = Path.Combine(dir, "paket.template")
+                        if File.Exists template then Some template
+                        else None
+
+                    { Path         = f
+                      Version      = version
+                      Prerelease   = prerelease
+                      ReleaseNotes = notes
+                      TemplateFile = template
+                      ProjectName  = projectName }
+                )
 
             let outputPath = Path.Combine(workdir, "bin", "pack")
 
-            if doBuild && File.Exists dependenciesPath && File.Exists releaseNotesPath  then
-            
-                let version, releaseNotes =
-                    match releaseNotes with
-                    | Some notes -> 
-                        notes.NugetVersion, notes.Notes
-                    | None ->   
-                        Log.warn "using version 0.0.0.0"
-                        "0.0.0.0", []
+            if doBuild && File.Exists dependenciesPath then
                 let projectUrl =
-                    githubInfo |> Option.map (fun (user, repo) -> 
+                    githubInfo |> Option.map (fun (user, repo) ->
                         sprintf "https://github.com/%s/%s/" user repo
                     )
-            
 
-                let deps = 
+                let deps =
                     try Paket.Dependencies(dependenciesPath)
-                    with e ->   
+                    with e ->
                         Log.error "paket error: %A" e
                         reraise()
 
-                deps.Pack(
-                    Path.Combine(workdir, "bin", "pack"),
-                    version = version,
-                    releaseNotes = String.concat "\r\n" releaseNotes,
-                    buildConfig = "Release",
-                    interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
-                    ?projectUrl = projectUrl
-                )
+                for target in targets do
+                    let outputPath =
+                        if perProject then target.GetOutputPath outputPath
+                        else outputPath
 
-                let packages =
-                    Directory.GetFiles(outputPath, "*.nupkg")
+                    deps.Pack(
+                        outputPath,
+                        version = target.Version,
+                        releaseNotes = String.concat "\r\n" target.ReleaseNotes,
+                        buildConfig = "Release",
+                        interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
+                        ?projectUrl = projectUrl,
+                        ?templateFile = target.TemplateFile
+                    )
 
-                let packageNameRx = Regex @"^(.*?)\.([0-9]+\.[0-9]+.*)\.nupkg$"
+                    let packages =
+                        Directory.GetFiles(outputPath, "*.nupkg")
 
-                for path in packages do
-                    let m = packageNameRx.Match (Path.GetFileName path)
-                    if m.Success then
-                        let id = m.Groups.[1].Value.Trim()
-                        let v = m.Groups.[2].Value.Trim()
-                        if v = version then
-                            Log.line "packed %s (%s)" id v
-                        else
-                            try File.Delete path
-                            with _ -> ()
-            
+                    let packageNameRx = Regex @"^(.*?)\.([0-9]+\.[0-9]+.*)\.nupkg$"
+
+                    for path in packages do
+                        let m = packageNameRx.Match (Path.GetFileName path)
+                        if m.Success then
+                            let id = m.Groups.[1].Value.Trim()
+                            let v = m.Groups.[2].Value.Trim()
+                            if v = target.Version then
+                                Log.line "packed %s (%s)" id v
+                            else
+                                try File.Delete path
+                                with _ -> ()
+
             Log.stop()
-        
+
             let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
-            if not (isNull token) then
-                if createTag then
+            if dryRun || not (isNull token) then
+                let globalReleaseNotes =
+                    lazy (
+                        tryFindReleaseNotes false workdir
+                        |> Option.bind (tryParseReleaseNotes false)
+                    )
+
+                let runGitCommandAndFail dir cmd =
+                    if dryRun then
+                        Log.line $"{dir}: git {cmd}"
+                    else
+                        Git.CommandHelper.directRunGitCommandAndFail workdir cmd
+
+                if createTag && not createRelease then
                     Log.start "Git:Tag"
 
-                    Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
-                    Git.CommandHelper.directRunGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
+                    runGitCommandAndFail workdir "config --local user.name \"aardvark-platform\""
+                    runGitCommandAndFail workdir "config --local user.email \"admin@aardvarkians.com\""
 
-                    let tagIsNew = 
-                        match releaseNotes with
-                        | Some notes ->
-                            if Directory.Exists(Path.Combine(workdir, ".git")) then
-                                try 
-                                    Git.CommandHelper.directRunGitCommandAndFail workdir (sprintf "tag -m %s %s" notes.NugetVersion notes.NugetVersion)
-                                    true
-                                with _ -> 
-                                    Log.warn "tag %A already exists" notes.NugetVersion
-                                    false
+                    let createAndPushTag (tag: string) =
+                        Log.line "creating tag '%s'" tag
+
+                        try
+                            try
+                                runGitCommandAndFail workdir $"tag -m {tag} {tag}"
+                            with e ->
+                                Log.warn "cannot create tag: %s" e.Message
+
+                            runGitCommandAndFail workdir $"push origin {tag}"
+                        with e ->
+                            Log.warn "cannot push tag: %s" e.Message
+
+                    if perProject then
+                        for target in targets do
+                            if target.HasVersion then
+                                match target.ProjectName with
+                                | Some name ->
+                                    createAndPushTag $"{name.ToLowerInvariant()}/{target.Version}"
+                                | _ ->
+                                    Log.warn "cannot tag for '%s', no project file" (Path.Relative(target.Path, workdir))
                             else
-                                Log.warn "cannot tag, not a git repository"
-                                false
-
-                        | None ->   
-                            Log.warn "no version"
-                            false
-
-                    if tagIsNew then
-                        Git.CommandHelper.directRunGitCommandAndFail workdir "push --tags"
+                                Log.warn "cannot tag for '%s', no version" (Path.Relative(target.Path, workdir))
+                    else
+                        match globalReleaseNotes.Value with
+                        | Some notes -> createAndPushTag notes.NugetVersion
+                        | _ -> Log.warn "cannot tag, no version"
 
                     Log.stop()
 
@@ -396,21 +518,13 @@ let main args =
                 if createRelease then
                     Log.start "Github:Release"
 
-
-                    let hash = 
+                    let hash =
                         match Git.CommandHelper.runGitCommand workdir "rev-parse HEAD" with
                         | (true, [hash], _) -> Some hash
                         | _ -> None
 
-                    match githubInfo, releaseNotes with
-                    | Some (user, repo), Some notes ->
-                        let packages = if doBuild then Directory.GetFiles(outputPath, "*.nupkg") else (files |> List.toArray)
-                        Log.start "%d files" packages.Length
-                        for file in packages do
-                            Log.line "%s" (Path.Relative(file, workdir))
-                        Log.stop()
-
-
+                    match githubInfo with
+                    | Some (user, repo) ->
                         let oo = Console.Out
                         let oe = Console.Error
                         use o = new ObservableTextWriter()
@@ -419,7 +533,7 @@ let main args =
                         o.Add (fun l ->
                             Log.line "%s" l
                         )
-                    
+
                         e.Add (fun l ->
                             Log.error "%s" l
                         )
@@ -428,52 +542,87 @@ let main args =
                             Console.SetOut o
                             Console.SetError e
                             try
-                                let client = GitHub.createClientWithToken token
+                                let client =
+                                    if dryRun then None
+                                    else Some <| GitHub.createClientWithToken token
 
-                                let oldRelease =
-                                    try
-                                        GitHub.getReleaseByTag user repo notes.NugetVersion client
+                                let createAndUploadRelease (releaseNotes: string list) (prerelease: bool) (tag: string) (name: string) (packages: string[]) =
+                                    Log.line "creating release '%s' with tag '%s'" name tag
+
+                                    Log.start "%d files" packages.Length
+                                    for file in packages do
+                                        Log.line "%s" (Path.Relative(file, workdir))
+                                    Log.stop()
+
+                                    let oldRelease =
+                                        try
+                                            client
+                                            |> Option.map (fun client ->
+                                                GitHub.getReleaseByTag user repo tag client
+                                                |> Async.RunSynchronously
+                                            )
+                                        with _ ->
+                                            None
+
+                                    match client, oldRelease with
+                                    | Some client, None ->
+                                        client
+                                        |> GitHub.createRelease user repo tag (fun p ->
+                                            {
+                                                Name = name
+                                                TargetCommitish = match hash with | Some h -> h | None -> p.TargetCommitish
+                                                Draft = true
+                                                Prerelease = prerelease
+                                                Body = String.concat "\r\n" releaseNotes
+                                            }
+                                        )
+                                        |> GitHub.uploadFiles packages
+                                        |> GitHub.publishDraft
                                         |> Async.RunSynchronously
-                                        |> Some
-                                    with _ ->
-                                        None
 
-                                match oldRelease with
-                                | Some _rel ->   
-                                    Log.warn "release %s already exists" notes.NugetVersion
-                                | None ->   
-                                    client
-                                    |> GitHub.createRelease user repo notes.NugetVersion (fun p ->
-                                        { 
-                                            Name = notes.NugetVersion
-                                            TargetCommitish = match hash with | Some h -> h | None -> p.TargetCommitish
-                                            Draft = true
-                                            Prerelease = notes.SemVer.PreRelease |> Option.isSome
-                                            Body = String.concat "\r\n" notes.Notes
-                                        }
-                                    )
-                                    |> GitHub.uploadFiles packages
-                                    |> GitHub.publishDraft
-                                    |> Async.RunSynchronously
+                                    | _, Some _rel ->
+                                        Log.warn "release with tag '%s' already exists" tag
+                                    | _ ->
+                                        ()
+
+                                if perProject then
+                                    for target in targets do
+                                        if target.HasVersion then
+                                            match target.ProjectName with
+                                            | Some name ->
+                                                let tag = $"{name.ToLowerInvariant()}/{target.Version}"
+                                                let relname = $"{name} - {target.Version}"
+                                                let packages = Directory.GetFiles(target.GetOutputPath(outputPath), "*.nupkg")
+                                                createAndUploadRelease target.ReleaseNotes target.Prerelease tag relname packages
+                                            | _ ->
+                                                Log.warn "cannot create release for '%s', no project file" (Path.Relative(target.Path, workdir))
+                                        else
+                                            Log.warn "cannot create release for '%s', no version" (Path.Relative(target.Path, workdir))
+                                else
+                                    let packages =
+                                        if doBuild then Directory.GetFiles(outputPath, "*.nupkg")
+                                        else files |> List.toArray
+
+                                    match globalReleaseNotes.Value with
+                                    | Some n -> packages |> createAndUploadRelease n.Notes n.SemVer.PreRelease.IsSome n.NugetVersion n.NugetVersion
+                                    | _ -> Log.warn "cannot create release, no version"
                             finally
                                 Console.SetOut oo
                                 Console.SetError oe
                         with e ->
                             Log.error "failed: %A" e
                             exit -1
-                    | _ ->  
+                    | _ ->
                         ()
 
                     Log.stop()
-                else
-                    Log.warn "not publishing, unchanged version"
+
             elif createTag || createRelease then
                 Log.warn "not publishing, no github token"
 
             Log.line "finished in %A" sw.Elapsed
-
-
             0
-        with e ->   
+
+        with e ->
             Log.error "unknown error: %A" e
             -1
