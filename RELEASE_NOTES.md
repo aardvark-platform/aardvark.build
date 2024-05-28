@@ -1,3 +1,7 @@
+### 1.0.24
+- [aardpack] Handle solution files properly when --per-project is specified
+- [aardpack] Added --skip-build option
+
 ### 1.0.23
 - [aardpack] Added --version option
 - [aardpack] Added --dry-run option for testing
