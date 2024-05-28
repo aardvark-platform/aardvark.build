@@ -5,6 +5,8 @@
     <TargetFramework>net6.0</TargetFramework>
     <PackAsTool>true</PackAsTool>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <Authors>Aardvark Platform Team</Authors>
+    <Description>.NET tool for packing Aardvark Platform projects.</Description>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\bin\Debug</OutputPath>
