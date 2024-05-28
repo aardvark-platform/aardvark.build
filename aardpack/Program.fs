@@ -169,22 +169,17 @@ type MyWriter() =
         for line in str.Split(x.NewLine) do
             evt.Trigger(line)
 
-[<Literal>]
-let InvalidVersion = "0.0.0.0"
-
 type PackTarget =
     { Path         : string
       Version      : string
       Prerelease   : bool
       ReleaseNotes : string list
       TemplateFile : string option
-      ProjectName  : string option }
-
-    member x.HasVersion =
-        x.Version <> InvalidVersion
+      ProjectId    : string option
+      Dependencies : Paket.Dependencies }
 
     member x.GetOutputPath(outputPath: string) =
-        Path.Combine(outputPath, x.ProjectName |> Option.defaultValue "")
+        Path.Combine(outputPath, x.ProjectId |> Option.defaultValue "")
 
 [<EntryPoint>]
 let main args =
@@ -239,6 +234,10 @@ let main args =
     let doBuild =
         not <| (hasArgument "nobuild" || hasArgument "no-build")
 
+    // If true, skips the build step but packages normally in contrast to --no-build
+    let skipBuild =
+        hasArgument "skip-build" || hasArgument "skipbuild"
+
     // Note: Github release will create a tag regardless.
     let createTag =
         not <| (hasArgument "notag" || hasArgument "no-tag")
@@ -261,50 +260,58 @@ let main args =
     let showVersion =
         hasArgument "version"
 
-    let dependenciesPath =
-        Path.Combine(workdir, "paket.dependencies")
+    // Tries to find a file in the given directory, recursively going up a level if not found.
+    let tryFindFile (kind: string) (tryGetFileInDirectory: string -> string option) (parse: string -> 'T) =
+        let cache = Dictionary<string, 'T>()
 
-    let tryFindReleaseNotes (quiet: bool) (directory: string) =
-        let rec doit (current: string) =
-            let filePath =
-                Directory.GetFiles(current, "*")
-                |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
-
-            if filePath.IsSome then filePath
-            else
+        let rec find (current: string) =
+            match tryGetFileInDirectory current with
+            | Some p -> Some <| FileInfo p
+            | _ ->
                 let parent = Directory.GetParent current
                 if isNull parent then
-                    if not quiet then
-                        Log.warn "failed to find releases notes for '%s'" directory
                     None
                 else
-                    doit parent.FullName
+                    find parent.FullName
 
-        doit directory
-
-    let tryParseReleaseNotes =
-        let cache = Dictionary<string, ReleaseNotes.ReleaseNotes>()
-
-        fun (quiet: bool) (path: string) ->
-            let fi = FileInfo path
-
-            if fi.Exists then
+        fun (quiet: bool) (directory: string) ->
+            match find directory with
+            | Some fi ->
                 match cache.TryGetValue fi.FullName with
-                | (true, notes) -> Some notes
+                | (true, deps) -> Some deps
                 | _ ->
                     try
-                        let notes = ReleaseNotes.load path
-                        cache.[fi.FullName] <- notes
-                        Some notes
+                        let deps = parse fi.FullName
+                        cache.[fi.FullName] <- deps
+                        Some deps
 
-                    with _ ->
+                    with e ->
                         if not quiet then
-                            Log.warn "could not parse '%s'" (Path.Relative(path, workdir))
+                            Log.error "could not parse '%s': %s" (Path.Relative(fi.FullName, workdir)) e.Message
                         None
-            else
+            | _ ->
                 if not quiet then
-                    Log.warn "could not find release notes in '%s'" (Path.Relative(path, workdir))
+                    Log.warn "could not find %s for '%s'" kind directory
                 None
+
+    let tryGetTemplateId (template: Paket.TemplateFile) =
+        match template.Contents with
+        | Paket.CompleteInfo (i, _) -> Some i.Id
+        | Paket.ProjectInfo (i, _) -> i.Id
+
+    let tryFindDependencies : string -> Paket.Dependencies option =
+        let check (current: string) =
+            let file = Path.Combine(current, "paket.dependencies")
+            if File.Exists file then Some file else None
+
+        tryFindFile "dependencies file" check Paket.Dependencies false
+
+    let tryFindReleaseNotes : bool -> string -> ReleaseNotes.ReleaseNotes option =
+        let check (current: string) =
+            Directory.GetFiles(current, "*")
+            |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
+
+        tryFindFile "release notes" check ReleaseNotes.load
 
     if showVersion then
         let asm = System.Reflection.Assembly.GetExecutingAssembly()
@@ -323,20 +330,17 @@ let main args =
         0
 
     elif parseOnly then
-        let releaseNotes =
-            tryFindReleaseNotes true workdir
-            |> Option.bind (tryParseReleaseNotes true)
+        let version =
+            match tryFindReleaseNotes true workdir with
+            | Some notes -> notes.NugetVersion
+            | _ -> "0.0.0.0"
 
-        match releaseNotes with
-        | Some notes ->
-            printfn "%s" notes.NugetVersion
-        | None ->
-            printfn "%s" InvalidVersion
+        printfn "%s" version
         0
 
     else
         try
-            if doBuild then
+            if doBuild && not skipBuild then
                 Log.start "DotNet:Build"
                 for f in files do
                     Log.start "%s" (Path.Relative(f, workdir))
@@ -381,62 +385,83 @@ let main args =
 
             Log.start "Paket:Pack"
 
-            let targets =
-                files |> List.map (fun f ->
-                    let dir = Path.GetDirectoryName f
+            let tryGetPackTarget (dependencies: Paket.Dependencies) (template: Paket.TemplateFile option) (file: string) =
+                let dir = Path.GetDirectoryName(Path.GetFullPath file)
 
-                    let version, prerelease, notes =
-                        let releaseNotes =
-                            dir
-                            |> tryFindReleaseNotes false
-                            |> Option.bind (tryParseReleaseNotes false)
+                match tryFindReleaseNotes false dir with
+                | Some notes ->
+                    let templateFile =
+                        template |> Option.map (fun t -> t.FileName)
 
-                        match releaseNotes with
-                        | Some notes ->
-                            notes.NugetVersion,
-                            notes.SemVer.PreRelease |> Option.isSome,
-                            notes.Notes
-                        | _ ->
-                            InvalidVersion, false, []
+                    let projectId =
+                        template |> Option.map (fun t ->
+                            let fileName = Path.GetFileNameWithoutExtension t.FileName
+                            tryGetTemplateId t |> Option.defaultValue fileName
+                        )
 
-                    let projectName =
-                        match Path.GetExtension f with
-                        | ".fsproj" | ".csproj" -> Some <| Path.GetFileNameWithoutExtension f
-                        | _ -> None
+                    Some {
+                        Path         = file
+                        Version      = notes.NugetVersion
+                        Prerelease   = notes.SemVer.PreRelease.IsSome
+                        ReleaseNotes = notes.Notes
+                        TemplateFile = templateFile
+                        ProjectId    = projectId
+                        Dependencies = dependencies
+                    }
+
+                | _ -> None
+
+            let rec tryGetPackTargets (file: string) =
+                let dir = Path.GetDirectoryName(Path.GetFullPath file)
+
+                match tryFindDependencies dir with
+                | Some deps ->
+                    let templateFiles = deps.ListTemplateFiles()
 
                     let template =
-                        let template = Path.Combine(dir, "paket.template")
-                        if File.Exists template then Some template
-                        else None
+                        templateFiles |> List.tryFind (fun t ->
+                            let templatePath = Path.GetFullPath t.FileName
+                            Path.GetDirectoryName templatePath = dir
+                        )
 
-                    { Path         = f
-                      Version      = version
-                      Prerelease   = prerelease
-                      ReleaseNotes = notes
-                      TemplateFile = template
-                      ProjectName  = projectName }
-                )
+                    if perProject && template.IsNone then
+                        templateFiles |> List.choose (fun t -> t.FileName |> tryGetPackTarget deps (Some t))
+                    else
+                        tryGetPackTarget deps template file |> Option.toList
+
+                | _ -> []
+
+            let targets =
+                if doBuild then
+                    let result =
+                        files
+                        |> List.collect tryGetPackTargets
+                        |> List.distinctBy (fun target ->
+                            target.Dependencies.RootPath, target.TemplateFile
+                        )
+
+                    Log.start "found %d pack targets" result.Length
+                    for t in result do Log.line "%s" t.Path
+                    Log.stop()
+
+                    result
+                else
+                    []
 
             let outputPath = Path.Combine(workdir, "bin", "pack")
 
-            if doBuild && File.Exists dependenciesPath then
+            if doBuild then
                 let projectUrl =
                     githubInfo |> Option.map (fun (user, repo) ->
                         sprintf "https://github.com/%s/%s/" user repo
                     )
-
-                let deps =
-                    try Paket.Dependencies(dependenciesPath)
-                    with e ->
-                        Log.error "paket error: %A" e
-                        reraise()
 
                 for target in targets do
                     let outputPath =
                         if perProject then target.GetOutputPath outputPath
                         else outputPath
 
-                    deps.Pack(
+                    target.Dependencies.Pack(
                         outputPath,
                         version = target.Version,
                         releaseNotes = String.concat "\r\n" target.ReleaseNotes,
@@ -466,12 +491,6 @@ let main args =
 
             let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
             if dryRun || not (isNull token) then
-                let globalReleaseNotes =
-                    lazy (
-                        tryFindReleaseNotes false workdir
-                        |> Option.bind (tryParseReleaseNotes false)
-                    )
-
                 let runGitCommandAndFail dir cmd =
                     if dryRun then
                         Log.line $"{dir}: git {cmd}"
@@ -497,20 +516,15 @@ let main args =
                         with e ->
                             Log.warn "cannot push tag: %s" e.Message
 
-                    if perProject then
-                        for target in targets do
-                            if target.HasVersion then
-                                match target.ProjectName with
-                                | Some name ->
-                                    createAndPushTag $"{name.ToLowerInvariant()}/{target.Version}"
-                                | _ ->
-                                    Log.warn "cannot tag for '%s', no project file" (Path.Relative(target.Path, workdir))
-                            else
-                                Log.warn "cannot tag for '%s', no version" (Path.Relative(target.Path, workdir))
-                    else
-                        match globalReleaseNotes.Value with
-                        | Some notes -> createAndPushTag notes.NugetVersion
-                        | _ -> Log.warn "cannot tag, no version"
+                    for target in targets do
+                        if perProject then
+                            match target.ProjectId with
+                            | Some name ->
+                                createAndPushTag $"{name.ToLowerInvariant()}/{target.Version}"
+                            | _ ->
+                                Log.error "cannot tag for '%s', project id not found but --per-project was specified" (Path.Relative(target.Path, workdir))
+                        else
+                            createAndPushTag target.Version
 
                     Log.stop()
 
@@ -547,9 +561,7 @@ let main args =
                                     else Some <| GitHub.createClientWithToken token
 
                                 let createAndUploadRelease (releaseNotes: string list) (prerelease: bool) (tag: string) (name: string) (packages: string[]) =
-                                    Log.line "creating release '%s' with tag '%s'" name tag
-
-                                    Log.start "%d files" packages.Length
+                                    Log.start "creating release '%s' with tag '%s' (%d files)" name tag packages.Length
                                     for file in packages do
                                         Log.line "%s" (Path.Relative(file, workdir))
                                     Log.stop()
@@ -585,27 +597,28 @@ let main args =
                                     | _ ->
                                         ()
 
-                                if perProject then
+                                if doBuild then
                                     for target in targets do
-                                        if target.HasVersion then
-                                            match target.ProjectName with
-                                            | Some name ->
-                                                let tag = $"{name.ToLowerInvariant()}/{target.Version}"
-                                                let relname = $"{name} - {target.Version}"
-                                                let packages = Directory.GetFiles(target.GetOutputPath(outputPath), "*.nupkg")
-                                                createAndUploadRelease target.ReleaseNotes target.Prerelease tag relname packages
-                                            | _ ->
-                                                Log.warn "cannot create release for '%s', no project file" (Path.Relative(target.Path, workdir))
-                                        else
-                                            Log.warn "cannot create release for '%s', no version" (Path.Relative(target.Path, workdir))
-                                else
-                                    let packages =
-                                        if doBuild then Directory.GetFiles(outputPath, "*.nupkg")
-                                        else files |> List.toArray
+                                        let packages = Directory.GetFiles(target.GetOutputPath(outputPath), "*.nupkg")
 
-                                    match globalReleaseNotes.Value with
-                                    | Some n -> packages |> createAndUploadRelease n.Notes n.SemVer.PreRelease.IsSome n.NugetVersion n.NugetVersion
-                                    | _ -> Log.warn "cannot create release, no version"
+                                        if perProject then
+                                            match target.ProjectId with
+                                            | Some id ->
+                                                let tag = $"{id.ToLowerInvariant()}/{target.Version}"
+                                                let rel = $"{id} - {target.Version}"
+                                                createAndUploadRelease target.ReleaseNotes target.Prerelease tag rel packages
+                                            | _ ->
+                                                let path = Path.Relative(target.Path, workdir)
+                                                Log.error "cannot create release for '%s', project id not found but --per-project was specified" path
+                                        else
+                                            createAndUploadRelease target.ReleaseNotes target.Prerelease target.Version target.Version packages
+                                else
+                                    match tryFindReleaseNotes false workdir with
+                                    | Some n ->
+                                        let packages = List.toArray files
+                                        createAndUploadRelease n.Notes n.SemVer.PreRelease.IsSome n.NugetVersion n.NugetVersion packages
+                                    | _ ->
+                                        Log.warn "cannot create release, no version"
                             finally
                                 Console.SetOut oo
                                 Console.SetError oe
