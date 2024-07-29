@@ -16,51 +16,50 @@ type ReleaseNotesTaskImpl() =
         else
             let path : string = task.ProjectPath // workaround for type inference problem
             let projDir = Path.GetDirectoryName(path)
+
             let root =
-                if System.String.IsNullOrWhiteSpace task.RepositoryRoot then Tools.findProjectRoot projDir
-                elif Directory.Exists task.RepositoryRoot then Some task.RepositoryRoot
-                else None
+                if not <| System.String.IsNullOrWhiteSpace task.RepositoryRoot && Directory.Exists task.RepositoryRoot then
+                    Some task.RepositoryRoot
+                else
+                    None
 
-            match root with
-            | Some rootDir ->
-                let releaseNotes =
-                    let path = 
-                        Directory.GetFiles(rootDir, "*") |> Array.tryFind Tools.isReleaseNotesFile
+            let releaseNotes =
+                let path = 
+                    match root with
+                    | Some rootDir -> Directory.GetFiles(rootDir, "*") |> Array.tryFind Tools.isReleaseNotesFile
+                    | _ -> Tools.findReleaseNotesFile projDir
 
-                    match path with
-                    | Some path ->  
-                        try 
-                            //ReleaseNotes.StandaloneImpl.parseReleaseNotes path 
-                            let releaseNotes = Fake.Core.ReleaseNotes.load path
-                            let nugetVersion = releaseNotes.NugetVersion
-                            let assemblyVersion = sprintf "%d.%d.0.0" releaseNotes.SemVer.Major releaseNotes.SemVer.Minor
-                            let notes = releaseNotes.Notes |> String.concat "\n" 
-                            (nugetVersion, assemblyVersion, notes) |> Some
-                        with e -> 
-                            task.Log.LogWarning (sprintf "could not parse release notes, using version 1.0.0.0 as a fallback. The exception was: %A" e)
-                            if task.AttachDebuggerOnError then 
-                                Debugger.Launch() |> ignore
-                                Debugger.Break()
-                                None
-                            else 
-                                None
-                    | None ->
-                        None
-
-                match releaseNotes with
-                | Some (nugetVersion, assemblyVersion, notes) -> 
-                    task.NugetVersion <- nugetVersion
-                    task.AssemblyVersion <- assemblyVersion
-                    task.ReleaseNotes <- notes
-                    true
+                match path with
+                | Some path ->  
+                    try 
+                        //ReleaseNotes.StandaloneImpl.parseReleaseNotes path 
+                        let releaseNotes = Fake.Core.ReleaseNotes.load path
+                        let nugetVersion = releaseNotes.NugetVersion
+                        let assemblyVersion = sprintf "%d.%d.0.0" releaseNotes.SemVer.Major releaseNotes.SemVer.Minor
+                        let notes = releaseNotes.Notes |> String.concat "\n" 
+                        (nugetVersion, assemblyVersion, notes) |> Some
+                    with e -> 
+                        task.Log.LogWarning (sprintf "could not parse release notes, using version 1.0.0.0 as a fallback. The exception was: %A" e)
+                        if task.AttachDebuggerOnError then 
+                            Debugger.Launch() |> ignore
+                            Debugger.Break()
+                            None
+                        else 
+                            None
                 | None ->
-                    task.Log.LogWarning "No release notes found: version will be 1.0.0.0. consider adding a RELEASE_NOTES.md to your repository root."
-                    task.NugetVersion <- "1.0.0.0"
-                    task.AssemblyVersion <- "1.0.0.0"
-                    task.ReleaseNotes <- ""
-                    true
+                    None
+
+            match releaseNotes with
+            | Some (nugetVersion, assemblyVersion, notes) -> 
+                task.NugetVersion <- nugetVersion
+                task.AssemblyVersion <- assemblyVersion
+                task.ReleaseNotes <- notes
+                true
             | None ->
-                task.Log.LogWarning "Could not find repository root (please specify RepositoryRoot Property)"   
+                task.Log.LogWarning "No release notes found: version will be 1.0.0.0. consider adding a RELEASE_NOTES.md to your repository root."
+                task.NugetVersion <- "1.0.0.0"
+                task.AssemblyVersion <- "1.0.0.0"
+                task.ReleaseNotes <- ""
                 true
 
 and ReleaseNotesTask() as this =

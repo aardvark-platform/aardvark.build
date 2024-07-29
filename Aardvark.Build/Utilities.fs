@@ -209,7 +209,7 @@ module Tools =
             //"readme(\.md)?"
             "paket\.dependencies"
             //"build\.(cmd|bat|ps1|sh)"
-            @"release(_|-)?notes(\.md)?"
+            //@"release(_|-)?notes(\.md)?"
         ]
 
     let private releaseNotesRx =
@@ -279,6 +279,30 @@ module Tools =
     let isReleaseNotesFile (path : string) =
         let name = Path.GetFileNameWithoutExtension(path).ToLower()
         releaseNotesRx.IsMatch name
+
+    let rec findReleaseNotesFile (path: string) =
+        try
+            if Directory.Exists path then
+                let files = Directory.GetFiles(path, "*")
+                let notes = files |> Array.tryFind isReleaseNotesFile
+
+                if notes.IsSome then notes
+                else
+                    let isRoot =
+                        files |> Array.exists (fun file ->
+                            let name = Path.GetFileName file
+                            projectRootIndicators |> List.exists (fun r -> r.IsMatch name)
+                        )
+
+                    if isRoot then None
+                    else
+                        let parent = Directory.GetParent path
+                        if isNull parent then None
+                        else findReleaseNotesFile parent.FullName
+            else
+                None
+        with _ ->
+            None
 
     let rec findLibs (path : string) =
         let found =
