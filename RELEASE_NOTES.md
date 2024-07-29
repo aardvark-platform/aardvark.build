@@ -1,3 +1,6 @@
+### 1.0.25
+- Make locating of release notes more flexible to support repositories with separate release notes for each project (previous implementation lead to problem with native dependencies).
+
 ### 1.0.24
 - [aardpack] Handle solution files properly when --per-project is specified
 - [aardpack] Added --skip-build option
