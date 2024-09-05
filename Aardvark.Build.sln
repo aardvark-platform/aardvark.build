@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33110.190
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.fsproj", "{518D3A53-7FFE-466C-97DC-8B7D41A453CA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build", "src\Aardvark.Build\Aardvark.Build.fsproj", "{518D3A53-7FFE-466C-97DC-8B7D41A453CA}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "aardpack", "aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "aardpack", "src\aardpack\aardpack.fsproj", "{AF860B59-629E-4614-ADB7-3AB402BF7358}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Tests", "Tests\Tests.fsproj", "{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Tests", "src\Tests\Tests.fsproj", "{C897DB2D-EC85-463F-AFFB-B1F6A3C0B29C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8949BA35-8833-4704-9054-A8B1212714F3}"
 	ProjectSection(SolutionItems) = preProject

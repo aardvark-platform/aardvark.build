@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AttachDebuggerOnError>True</AttachDebuggerOnError>
+    <OutputPath>..\..\..\bin\$(Configuration)</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Library.fs" />
+  </ItemGroup>
+  <Import Project="..\..\bin\Debug\netstandard2.0\Aardvark.Build.targets" />
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+
+</Project>

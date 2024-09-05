@@ -3,17 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <OutputPath>..\bin\Debug</OutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <OutputPath>..\bin\Release</OutputPath>
+    <OutputPath>..\..\bin\$(Configuration)</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
-    <Compile Include="Library.fs" />
-    
+    <Compile Include="Library.fs" />  
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aardvark.Build\Aardvark.Build.fsproj" />
