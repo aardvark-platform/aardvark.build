@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net48</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFrameworks>
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <WarnOn>3389;3390;3395</WarnOn>
+    <OutputPath>..\..\..\bin\$(Configuration)\tests</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Utilities.fs" />
+    <Compile Include="Tests.fs" />
+    <None Include="paket.references" />
+  </ItemGroup>
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
+</Project>

@@ -1,26 +1,25 @@
-source https://api.nuget.org/v3/index.json
-redirects: off
-framework: auto-detect
+framework: netstandard2.0, net8.0, net48
 storage: none
+redirects: off
+source https://api.nuget.org/v3/index.json
 
-nuget FSharp.Core >= 6.0.3 lowest_matching: true
+nuget FSharp.Core                           >= 6.0.3 lowest_matching: true
 
-nuget SharpZipLib                    ~> 1.4.2
-nuget Mono.Cecil                     ~> 0.11.5
-nuget Microsoft.Build.Tasks.Core     ~> 17.0.0
-nuget Microsoft.Build.Framework      ~> 17.0.0
-nuget Microsoft.Build.Utilities.Core ~> 17.0.0
+nuget Microsoft.Build.Tasks.Core            >= 17.0.0 lowest_matching: true
+nuget Microsoft.Build.Framework             >= 17.0.0 lowest_matching: true
+nuget Microsoft.Build.Utilities.Core        >= 17.0.0 lowest_matching: true
 
-nuget Fake.Core.ReleaseNotes ~> 6.0.0
-nuget Fake.DotNet.Cli        ~> 6.0.0
-nuget Fake.Tools.Git         ~> 6.0.0
-nuget Fake.Api.GitHub        ~> 6.0.0
+nuget SharpZipLib                           ~> 1.4.2
 
-nuget Paket.Core ~> 8.0.3
+nuget Fake.Core.ReleaseNotes                ~> 6.0.0
+nuget Fake.DotNet.Cli                       ~> 6.0.0
+nuget Fake.Tools.Git                        ~> 6.0.0
+nuget Fake.Api.GitHub                       ~> 6.0.0
 
-nuget Microsoft.NET.Test.Sdk ~> 15.5.0
-nuget NUnit                  ~> 3.9.0
-nuget NUnit3TestAdapter      ~> 3.9.0
+nuget Paket.Core                            ~> 8.0.3
 
-nuget FSys                   ~> 0.0.1
-nuget FsUnit
+// Tests
+nuget NUnit                                 ~> 3.14.0
+nuget FsUnit                                ~> 5.6.1
+nuget NUnit3TestAdapter                     ~> 4.5.0
+nuget Microsoft.NET.Test.Sdk                ~> 17.9.0

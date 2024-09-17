@@ -3,37 +3,81 @@ on:
   push:
     branches:
       - master
+      - standalone-tool
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/pack.yml
 jobs:
+  test_mac:
+    name: Test (OSX)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build
+        run: sh ./build.sh
+      - name: Test
+        run: dotnet test src/Aardvark.Build.sln -c Release --no-build --nologo --logger:"console;verbosity=normal"
+
+  test_win:
+    name: Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build
+        shell: cmd
+        run: build.cmd
+      - name: Test
+        run: dotnet test src\Aardvark.Build.sln -c Release --no-build --nologo --logger:"console;verbosity=normal"
+
+  test_linux:
+    name: Test (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build
+        run: sh ./build.sh
+      - name: Test
+        run: dotnet test src/Aardvark.Build.sln -c Release --no-build --nologo --logger:"console;verbosity=normal"
+
   pack:
     name: Package
     runs-on: windows-latest
-    steps:  
+    needs:
+      - test_mac
+      - test_win
+      - test_linux
+    steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-      - name: Restore Tools
-        run: dotnet tool restore
-      - name: Restore
-        run: dotnet paket restore
-      - name: Build
-        shell: cmd
-        run: dotnet build -c Release Aardvark.Build.sln
       - name: Pack
         shell: cmd
         run: pack.cmd
-      - name: Upload Package 
-        uses: actions/upload-artifact@v3
-        with:
-          name: packages
-          path: bin\pack
-      - name: NuGet
-        env:
-          NUGET_KEY: ${{ secrets.NUGET_KEY }}
-        shell: cmd
-        run: dotnet nuget push "bin\pack\*.nupkg" -k %NUGET_KEY% -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+      # - name: Upload Package
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: packages
+      #     path: bin\pack
+      # - name: NuGet
+      #   env:
+      #     NUGET_KEY: ${{ secrets.NUGET_KEY }}
+      #   shell: cmd
+      #   run: dotnet nuget push "bin\pack\*.nupkg" -k %NUGET_KEY% -s "https://api.nuget.org/v3/index.json" --skip-duplicate

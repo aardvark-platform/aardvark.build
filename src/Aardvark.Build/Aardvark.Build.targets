@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <UsingTask TaskName="Aardvark.Build.ReleaseNotesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild"> 
-    <ReleaseNotesTask DesignTime="$(DesignTimeBuild)" RepositoryRoot="$(RepositoryRoot)" ProjectPath="$(MSBuildProjectFullPath)" AttachDebuggerOnError="$(AttachDebuggerOnError)">
+  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild;GenerateNuspec">
+    <ReleaseNotesTask
+      DesignTime="$(DesignTimeBuild)"
+      RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
+      ProjectPath="$(MSBuildProjectFullPath)"
+      Verbosity="$(AardvarkBuildVerbosity)">
       <Output TaskParameter="NugetVersion" PropertyName="NugetVersion"/>
       <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion"/>
       <Output TaskParameter="ReleaseNotes" PropertyName="ReleaseNotes"/>
@@ -17,55 +21,41 @@
     </PropertyGroup>
   </Target>
 
-  <UsingTask TaskName="Aardvark.Build.NativeDependencyTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="InjectNativeDependencies" DependsOnTargets="Compile" BeforeTargets="CopyFilesToOutputDirectory"> 
-    <NativeDependencyTask
+  <UsingTask TaskName="Aardvark.Build.NativeDependenciesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
+  <Target Name="PackNativeDependencies" BeforeTargets="BeforeBuild">
+    <NativeDependenciesTask
       DesignTime="$(DesignTimeBuild)"
-      Assembly="@(IntermediateAssembly)"
       AssemblyName="$(AssemblyName)"
-      OutputPath="$(OutputPath)"
-      RepositoryRoot="$(RepositoryRoot)"
+      RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
+      Force="$(AardvarkBuildForceNativeRepack)"
       ProjectPath="$(MSBuildProjectFullPath)"
-      References="@(ReferencePath)"
-    />
-  </Target>
-
-
-  <UsingTask TaskName="Aardvark.Build.LocalPackageOverrideTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="LocalPackages" AfterTargets="ResolveReferences" >
-    <LocalPackageOverrideTask RepositoryRoot="$(RepositoryRoot)" InputReferences="@(ReferencePath)" InputCopyLocal="@(ReferenceCopyLocalPaths)" ProjectPath="$(MSBuildProjectFullPath)">
-      <Output TaskParameter="OutputReferences" PropertyName="OutputReferences"/>
-      <Output TaskParameter="RemoveReferences" PropertyName="RemoveReferences"/>
-      <Output TaskParameter="OutputCopyLocal" PropertyName="OutputCopyLocal"/>
-      <Output TaskParameter="RemoveCopyLocal" PropertyName="RemoveCopyLocal"/>
-    </LocalPackageOverrideTask>
+      OutputPath="$(IntermediateOutputPath)"
+      Verbosity="$(AardvarkBuildVerbosity)">
+      <Output TaskParameter="ZipArchivePath" PropertyName="_NativeZipPath"/>
+    </NativeDependenciesTask>
     <ItemGroup>
-      <ReferencePath Remove="$(RemoveReferences)" />
-      <ReferencePath Include="$(OutputReferences)" />
-      <ReferenceCopyLocalPaths Remove="$(RemoveCopyLocal)" />
-      <ReferenceCopyLocalPaths Include="$(OutputCopyLocal)" />
+      <EmbeddedResource Include="$(_NativeZipPath)" LogicalName="native.zip" Condition="'$(_NativeZipPath)' != '' AND Exists('$(_NativeZipPath)')"/>
     </ItemGroup>
   </Target>
 
-
-  <UsingTask TaskName="Aardvark.Build.PaketPackTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="PaketOverrideNuspec" />
-  <Target Name="PaketPack" DependsOnTargets="Compile" Condition="'$(IsPackable)' == '' Or '$(IsPackable)' == 'true'" AfterTargets="GenerateNuspec;PaketOverrideNuspec" BeforeTargets="PackTask"> 
-    <PaketPackTask
-      DesignTime="$(DesignTimeBuild)"
-      Assembly="@(IntermediateAssembly)"
-      RepositoryRoot="$(RepositoryRoot)"
+  <UsingTask TaskName="Aardvark.Build.LocalSourcesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
+  <Target Name="LocalPackages" AfterTargets="ResolveReferences" >
+    <LocalSourcesTask
+      InputReferences="@(ReferencePath)"
+      InputCopyLocal="@(ReferenceCopyLocalPaths)"
+      RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
       ProjectPath="$(MSBuildProjectFullPath)"
-      Configuration="$(Configuration)"
-      AssemblyName="$(AssemblyName)"
-      OutputPath="$(OutputPath)"
-      PackageOutputPath="$(PackageOutputPath)"
-      PackageVersion="$(PackageVersion)"
-      PackageReleaseNotes="$(PackageReleaseNotes)"
-      ProjectReferences="@(ProjectReference)"
-    />
-
+      Verbosity="$(AardvarkBuildVerbosity)">
+      <Output TaskParameter="AddReferences" PropertyName="_AddReferences"/>
+      <Output TaskParameter="RemoveReferences" PropertyName="_RemoveReferences"/>
+      <Output TaskParameter="AddCopyLocal" PropertyName="_AddCopyLocal"/>
+      <Output TaskParameter="RemoveCopyLocal" PropertyName="_RemoveCopyLocal"/>
+    </LocalSourcesTask>
+    <ItemGroup>
+      <ReferencePath Remove="$(_RemoveReferences)" />
+      <ReferencePath Include="$(_AddReferences)" />
+      <ReferenceCopyLocalPaths Remove="$(_RemoveCopyLocal)" />
+      <ReferenceCopyLocalPaths Include="$(_AddCopyLocal)" />
+    </ItemGroup>
   </Target>
-
-
 </Project>

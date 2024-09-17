@@ -8,5 +8,8 @@ obj/
 /.vs
 /.ionide
 **/.vs
+**/bin
 /getversion/bin/**
 /.version
+src/Tests/TestApp/build/
+src/Tests/TestApp/standalone-tool

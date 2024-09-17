@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackAsTool>true</PackAsTool>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <Authors>Aardvark Platform Team</Authors>
@@ -13,6 +13,6 @@
     <Compile Include="Program.fs" />
     <None Include="paket.references" />
   </ItemGroup>
-  <Import Project="..\bin\Debug\netstandard2.0\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\bin\Debug\netstandard2.0\Aardvark.Build.targets')" />
-  <Import Project="..\.paket\Paket.Restore.targets" />
+  <Import Project="..\..\bin\Release\build\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\..\bin\Release\build\Aardvark.Build.targets')" />
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

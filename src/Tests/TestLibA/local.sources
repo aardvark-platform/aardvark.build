@@ -1,0 +1,3 @@
+../TestLibB
+   dotnet build -c Debug /p:DefineConstants="LOCAL_SOURCE"
+   dotnet paket pack --version {VERSION} --build-config Debug {OUTPUT}

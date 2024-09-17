@@ -3,20 +3,8 @@ type file
 authors Aardvark Platform Team
 description Aardvark Native Build Helper
 developmentDependency true
-excludeddependencies
-  FSharp.Core
-  Microsoft.Build.Framework
-  Mono.Cecil
-  SharpZipLib
 files
-  ../bin/Release/netstandard2.0/FSharp.Core.dll ==> build
-  ../bin/Release/netstandard2.0/ICSharpCode.SharpZipLib.dll ==> build
-  ../bin/Release/netstandard2.0/Microsoft.Build.Framework.dll ==> build
-  ../bin/Release/netstandard2.0/Microsoft.Build.Tasks.Core.dll ==> build
-  ../bin/Release/netstandard2.0/Microsoft.Build.Utilities.Core.dll ==> build
-  ../bin/Release/netstandard2.0/Mono.Cecil.dll ==> build
-  ../bin/Release/netstandard2.0/Mono.Cecil.Mdb.dll ==> build
-  ../bin/Release/netstandard2.0/Mono.Cecil.Pdb.dll ==> build
-  ../bin/Release/netstandard2.0/Mono.Cecil.Rocks.dll ==> build
-  ../bin/Release/netstandard2.0/Aardvark.Build.dll ==> build
-  ../bin/Release/netstandard2.0/Aardvark.Build.targets ==> build
+  ../../bin/publish/standalone-tool/* ==> standalone-tool
+  ../../bin/Release/build/Aardvark.Build.dll ==> build
+  ../../bin/Release/build/Aardvark.Build.deps.json ==> build
+  Aardvark.Build.targets ==> build

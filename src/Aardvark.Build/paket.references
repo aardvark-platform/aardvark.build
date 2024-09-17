@@ -1,6 +1,2 @@
-Microsoft.Build.Tasks.Core
 Microsoft.Build.Framework
 Microsoft.Build.Utilities.Core
-FSharp.Core
-Mono.Cecil 
-SharpZipLib

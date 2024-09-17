@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net48</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFrameworks>
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <OutputPath>..\..\..\bin\$(Configuration)\tests</OutputPath>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <AardvarkBuildRepositoryRoot>$(MSBuildThisFileDirectory)</AardvarkBuildRepositoryRoot>
+    <AardvarkBuildVerbosity>Debug</AardvarkBuildVerbosity>
+    <AardvarkBuildForceNativeRepack>False</AardvarkBuildForceNativeRepack>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="local.sources" />
+    <None Include="paket.references" />
+    <None Include="paket.template" />
+    <None Include="RELEASE_NOTES.md" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Aardvark.Build.Tool\Aardvark.Build.Tool.fsproj" Private="True" Condition="'$(TargetFramework)' != 'net48'" />
+    <ProjectReference Include="..\..\Aardvark.Build\Aardvark.Build.csproj" Private="True" />
+    <ProjectReference Include="..\TestLibA\TestLibA.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\..\bin\$(Configuration)\build\Aardvark.Build.targets" />
+  <Import Project="..\..\..\.paket\Paket.Restore.targets" />
+</Project>

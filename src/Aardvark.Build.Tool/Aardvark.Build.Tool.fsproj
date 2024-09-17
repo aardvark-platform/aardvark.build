@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>False</UseAppHost>
+    <RollForward>Major</RollForward>
+    <TargetFramework>net8.0</TargetFramework>
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <OutputPath>..\..\bin\$(Configuration)\standalone-tool</OutputPath>
+    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+    <SatelliteResourceLanguages>en-US;en</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="paket.references" />
+    <Compile Include="Common\Args.fs" />
+    <Compile Include="Common\Logger.fs" />
+    <Compile Include="Common\Utilities.fs" />
+    <Compile Include="Commands\ReleaseNotes.fs" />
+    <Compile Include="Commands\NativeDependencies.fs" />
+    <Compile Include="Commands\LocalSources.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
