@@ -169,6 +169,20 @@ type MyWriter() =
         for line in str.Split(x.NewLine) do
             evt.Trigger(line)
 
+type TargetPath =
+    | File of path: string
+    | Directory of path: string
+
+    member x.Path =
+        match x with
+        | File f -> f
+        | Directory d -> d
+
+    member x.GetDirectoryName() =
+        match x with
+        | File f -> Path.GetDirectoryName f
+        | Directory d -> d
+
 type PackTarget =
     { Path         : string
       Version      : string
@@ -403,8 +417,8 @@ let main args =
 
             Log.start "Paket:Pack"
 
-            let tryGetPackTarget (dependencies: Paket.Dependencies) (template: Paket.TemplateFile option) (file: string) =
-                let dir = Path.GetDirectoryName(Path.GetFullPath file)
+            let tryGetPackTarget (dependencies: Paket.Dependencies) (template: Paket.TemplateFile option) (path: TargetPath) =
+                let dir = path.GetDirectoryName()
 
                 match tryFindReleaseNotes false dir with
                 | Some notes ->
@@ -418,7 +432,7 @@ let main args =
                         )
 
                     Some {
-                        Path         = file
+                        Path         = path.Path
                         Version      = notes.NugetVersion
                         Prerelease   = notes.SemVer.PreRelease.IsSome
                         ReleaseNotes = notes.Notes
@@ -429,8 +443,13 @@ let main args =
 
                 | _ -> None
 
-            let rec tryGetPackTargets (file: string) =
-                let dir = Path.GetDirectoryName(Path.GetFullPath file)
+            let rec tryGetPackTargets (fileOrDirectory: string) =
+                let path =
+                    let full = Path.GetFullPath fileOrDirectory
+                    if File.Exists full then File full
+                    else Directory full
+
+                let dir = path.GetDirectoryName()
 
                 match tryFindDependencies dir with
                 | Some deps ->
@@ -443,9 +462,9 @@ let main args =
                         )
 
                     if perProject && template.IsNone then
-                        templateFiles |> List.choose (fun t -> t.FileName |> tryGetPackTarget deps (Some t))
+                        templateFiles |> List.choose (fun t -> t.FileName |> Path.GetFullPath |> File |> tryGetPackTarget deps (Some t))
                     else
-                        tryGetPackTarget deps template file |> Option.toList
+                        tryGetPackTarget deps template path |> Option.toList
 
                 | _ -> []
 
