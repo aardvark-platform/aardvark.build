@@ -10,6 +10,7 @@
     <AardvarkBuildRepositoryRoot>$(MSBuildThisFileDirectory)</AardvarkBuildRepositoryRoot>
     <AardvarkBuildVerbosity>Debug</AardvarkBuildVerbosity>
     <AardvarkBuildForceNativeRepack>False</AardvarkBuildForceNativeRepack>
+    <_AardvarkBuildTargets>..\..\..\bin\$(Configuration)\build\Aardvark.Build.targets</_AardvarkBuildTargets>
   </PropertyGroup>
   <ItemGroup>
     <None Include="local.sources" />
@@ -19,10 +20,13 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Aardvark.Build.Tool\Aardvark.Build.Tool.fsproj" Private="True" Condition="'$(TargetFramework)' != 'net48'" />
-    <ProjectReference Include="..\..\Aardvark.Build\Aardvark.Build.csproj" Private="True" />
     <ProjectReference Include="..\TestLibA\TestLibA.fsproj" />
   </ItemGroup>
-  <Import Project="..\..\..\bin\$(Configuration)\build\Aardvark.Build.targets" />
+  <Import Project="$(_AardvarkBuildTargets)" Condition="Exists('$(_AardvarkBuildTargets)')" />
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
+  <Target Name="ValidateBuild" BeforeTargets="BeforeBuild">
+    <Error
+        Text="Aardvark.Build and Aardvark.Build.Tool ($(Configuration)) must be built manually."
+        Condition="!Exists('$(_AardvarkBuildTargets)')" />
+  </Target>
 </Project>

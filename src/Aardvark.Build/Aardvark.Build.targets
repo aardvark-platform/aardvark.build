@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_ToolAssembly>$(MSBuildThisFileDirectory)..\standalone-tool\Aardvark.Build.Tool.dll</_ToolAssembly>
+  </PropertyGroup>
+
+  <Target Name="ValidateBuildTool">
+    <Error Text="Tool assembly '$(_ToolAssembly)' not found." Condition="!Exists('$(_ToolAssembly)')" />
+  </Target>
+
   <UsingTask TaskName="Aardvark.Build.ReleaseNotesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild;GenerateNuspec">
+  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild;GenerateNuspec" DependsOnTargets="ValidateBuildTool">
     <ReleaseNotesTask
+      ToolAssembly="$(_ToolAssembly)"
       DesignTime="$(DesignTimeBuild)"
       RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
       ProjectPath="$(MSBuildProjectFullPath)"
@@ -22,8 +31,9 @@
   </Target>
 
   <UsingTask TaskName="Aardvark.Build.NativeDependenciesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="PackNativeDependencies" BeforeTargets="BeforeBuild">
+  <Target Name="PackNativeDependencies" BeforeTargets="BeforeBuild" DependsOnTargets="ValidateBuildTool">
     <NativeDependenciesTask
+      ToolAssembly="$(_ToolAssembly)"
       DesignTime="$(DesignTimeBuild)"
       AssemblyName="$(AssemblyName)"
       RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
@@ -39,8 +49,9 @@
   </Target>
 
   <UsingTask TaskName="Aardvark.Build.LocalSourcesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="LocalPackages" AfterTargets="ResolveReferences" >
+  <Target Name="LocalPackages" AfterTargets="ResolveReferences" DependsOnTargets="ValidateBuildTool">
     <LocalSourcesTask
+      ToolAssembly="$(_ToolAssembly)"
       InputReferences="@(ReferencePath)"
       InputCopyLocal="@(ReferenceCopyLocalPaths)"
       RepositoryRoot="$(AardvarkBuildRepositoryRoot)"

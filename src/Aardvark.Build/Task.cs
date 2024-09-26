@@ -78,6 +78,9 @@ namespace Aardvark.Build
 
         public string Verbosity { get; set; }
 
+        [Required]
+        public string ToolAssembly { get; set; }
+
         protected override string ToolName => "dotnet";
 
         protected override MessageImportance StandardOutputLoggingImportance => MessageImportance.Low;
@@ -99,15 +102,7 @@ namespace Aardvark.Build
 
         protected override string GenerateCommandLineCommands()
         {
-            var taskAssemblyLocation = typeof(Task).Assembly.Location;
-            if (string.IsNullOrEmpty(taskAssemblyLocation)) throw new NotSupportedException("Cannot locate assembly.");
-
-            var nugetPackageDir = new FileInfo(taskAssemblyLocation).Directory.Parent;
-
-            var toolAssemblyPath = Path.Combine(nugetPackageDir.FullName, "standalone-tool");
-            var toolAssembly = Path.Combine(toolAssemblyPath, "Aardvark.Build.Tool.dll");
-
-            return $"{toolAssembly} {Command} " +
+            return $"{ToolAssembly} {Command} " +
                $"--log-size={MemoryMappedLog.SizeInBytes} " +
                $"--log-persisted={MemoryMappedLog.IsPersisted} " +
                $"--log-output={PathArg(logOutput.Name)} " +
