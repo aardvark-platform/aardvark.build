@@ -16,6 +16,18 @@ Aardvark.Build simplifies the build process for projects using the Aardvark plat
 
 Reference the `Aardvark.Build` package in your project to install the custom MSBuild tasks.
 
+## Configuration
+Aardvark.Build should work out of the box without further configuration. Nevertheless, there are some MSBuild properties that can be modified for special scenarios and troubleshooting:
+* `AardvarkBuildRepositoryRoot`: Path to the repository root that contains the project. The root folder is where the `libs` folder containing native dependencies is located. If not set, the root is located by traversing up from the project file until either the `.git` folder or the `paket.dependencies` file is found.
+
+* `AardvarkBuildForceNativeRepack`: If set to `True`, the up-to-date check for packing native dependencies is skipped. As a consequence, native dependencies will be rezipped even if nothing changed.
+
+* `AardvarkBuildVerbosity`: Determines how much information is printed to the console.
+  * `Minimal` - errors only
+  * `Normal` - warnings and errors (default)
+  * `Detailed` - warnings, errors, and informational messages
+  * `Debug` - everything including debug messages
+
 ## Release Notes & Versioning
 
 Aardvark.Build expects your project to have a file called `RELEASE_NOTES.md` (case insensitive and also allowing some variations of the name) in the repository-root directory. This file will be used to get `AssemblyVersion` and also `PackageVersion` during build/pack. The syntax for the file sticks to the one defined by `Fake.Core.ReleaseNotes` and may for example look like:
@@ -70,7 +82,7 @@ For adding an external repository you need to create a file called `local.source
     dotnet paket pack {OUTPUT}
 ```
 
-Non-indented strings are interpreted as paths to the repository (absolute or relative to the `.sources` file) and all indented lines following are commands that create packages in the spliced folder-path `{OUTPUT}` provided by Aardvark.Build. 
+Non-indented strings are interpreted as paths to the repository (absolute or relative to the `.sources` file) and all indented lines following are commands that create packages in the spliced folder-path `{OUTPUT}` provided by Aardvark.Build.
 
 All packages created this way will override their nuget/paket counterparts during build and startup. However we experienced some problems with auto-completion for newly added functions, etc.
 
