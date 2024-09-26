@@ -1,5 +1,7 @@
 ﻿namespace Aardvark.Build.Tool
 
+open System.Diagnostics
+
 module Program =
 
     [<EntryPoint>]
@@ -9,19 +11,29 @@ module Program =
                 let args = argv |> Array.skip 1 |> Args
                 use _ = Log.init args
 
-                match argv.[0] with
-                | "notes" ->
-                    ReleaseNotesCommand.run args
+                let sw = Stopwatch()
+                sw.Start()
 
-                | "native-deps" ->
-                    NativeDependenciesCommand.run args
+                try
+                    match argv.[0] with
+                    | "notes" ->
+                        ReleaseNotesCommand.run args
 
-                | "local-sources" ->
-                    LocalSourcesCommand.run args
+                    | "native-deps" ->
+                        NativeDependenciesCommand.run args
 
-                | cmd ->
-                    Log.error $"Unknown command: {cmd}"
-                    -1
+                    | "local-sources" ->
+                        LocalSourcesCommand.run args
+
+                    | cmd ->
+                        Log.error $"Unknown command: {cmd}"
+                        -1
+
+                finally
+                    sw.Stop()
+                    let elapsedSeconds = (float sw.ElapsedMilliseconds) / 1000.0
+                    Log.debug $"Command '{argv.[0]}' took %.3f{elapsedSeconds} seconds."
+
             else
                 Log.error "No commmand specified."
                 -1
