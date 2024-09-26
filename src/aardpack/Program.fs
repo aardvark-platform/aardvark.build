@@ -260,6 +260,10 @@ let main args =
     let showVersion =
         hasArgument "version"
 
+    let config =
+        if hasArgument "debug" then DotNet.BuildConfiguration.Debug
+        else DotNet.BuildConfiguration.Release
+
     // Tries to find a file in the given directory, recursively going up a level if not found.
     let tryFindFile (kind: string) (tryGetFileInDirectory: string -> string option) (parse: string -> 'T) =
         let cache = Dictionary<string, 'T>()
@@ -362,7 +366,7 @@ let main args =
                         { o with
                             NoLogo = true
                             MSBuildParams = { o.MSBuildParams with DisableInternalBinLog = true } // https://github.com/fsprojects/FAKE/issues/2595
-                            Configuration = DotNet.BuildConfiguration.Release
+                            Configuration = config
                             Common = { o.Common with Verbosity = Some DotNet.Verbosity.Minimal; RedirectOutput = true }
                         }
                     )
@@ -479,7 +483,7 @@ let main args =
                         outputPath,
                         version = target.Version,
                         releaseNotes = String.concat "\r\n" target.ReleaseNotes,
-                        buildConfig = "Release",
+                        buildConfig = string config,
                         interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
                         ?projectUrl = projectUrl,
                         ?templateFile = target.TemplateFile
