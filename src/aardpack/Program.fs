@@ -311,7 +311,21 @@ let main args =
             Directory.GetFiles(current, "*")
             |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
 
-        tryFindFile "release notes" check ReleaseNotes.load
+        tryFindFile "release notes" check (fun file ->
+            let data =
+                // Skip all invalid lines for preliminary release notes
+                // https://github.com/fsprojects/FAKE/blob/04c2b476becaea55b2caa54420c2bbf64c901460/src/app/Fake.Core.ReleaseNotes/ReleaseNotes.fs#L232
+                File.ReadAllLines(file)
+                |> Array.skipWhile (fun line ->
+                    let line = line.Trim('-', ' ')
+                    if line.Length > 0 then
+                        line.[0] <> '*' && line.[0] <> '#'
+                    else
+                        true
+                    )
+
+            ReleaseNotes.parse data
+        )
 
     if showVersion then
         let asm = System.Reflection.Assembly.GetExecutingAssembly()

@@ -33,6 +33,10 @@ Aardvark.Build should work out of the box without further configuration. Neverth
 Aardvark.Build expects your project to have a file called `RELEASE_NOTES.md` (case insensitive and also allowing some variations of the name) in the repository-root directory. This file will be used to get `AssemblyVersion` and also `PackageVersion` during build/pack. The syntax for the file sticks to the one defined by `Fake.Core.ReleaseNotes` and may for example look like:
 
 ```markdown
+Lines above the first version are ignored an can be used to record preliminary release notes.
+- Pending change
+- Another pending change
+
 ### 0.1.2.3
 - fixed problem 1
 - added feature XY

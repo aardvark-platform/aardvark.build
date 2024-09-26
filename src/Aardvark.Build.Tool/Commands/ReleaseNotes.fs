@@ -27,8 +27,21 @@ module ReleaseNotesCommand =
         match file with
         | Some file ->
             try
-                Log.info "Found release notes: %s" file
-                let releaseNotes = ReleaseNotes.load file
+                Log.debug "Found release notes: %s" file
+
+                let data =
+                    // Skip all invalid lines for preliminary release notes
+                    // https://github.com/fsprojects/FAKE/blob/04c2b476becaea55b2caa54420c2bbf64c901460/src/app/Fake.Core.ReleaseNotes/ReleaseNotes.fs#L232
+                    File.ReadAllLines(file)
+                    |> Array.skipWhile (fun line ->
+                        let line = line.Trim('-', ' ')
+                        if line.Length > 0 then
+                            line.[0] <> '*' && line.[0] <> '#'
+                        else
+                            true
+                    )
+
+                let releaseNotes = ReleaseNotes.parse data
                 let nugetVersion = releaseNotes.NugetVersion
                 let assemblyVersion = sprintf "%d.%d.0.0" releaseNotes.SemVer.Major releaseNotes.SemVer.Minor
                 Log.info "Version: %s" nugetVersion
