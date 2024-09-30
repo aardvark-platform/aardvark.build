@@ -13,6 +13,7 @@
     <ReleaseNotesTask
       ToolAssembly="$(_ToolAssembly)"
       DesignTime="$(DesignTimeBuild)"
+      IntermediateOutputPath="$(IntermediateOutputPath)"
       RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
       ProjectPath="$(MSBuildProjectFullPath)"
       Verbosity="$(AardvarkBuildVerbosity)">
@@ -35,11 +36,11 @@
     <NativeDependenciesTask
       ToolAssembly="$(_ToolAssembly)"
       DesignTime="$(DesignTimeBuild)"
+      IntermediateOutputPath="$(IntermediateOutputPath)"
       AssemblyName="$(AssemblyName)"
       RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
       Force="$(AardvarkBuildForceNativeRepack)"
       ProjectPath="$(MSBuildProjectFullPath)"
-      OutputPath="$(IntermediateOutputPath)"
       Verbosity="$(AardvarkBuildVerbosity)">
       <Output TaskParameter="ZipArchivePath" PropertyName="_NativeZipPath"/>
     </NativeDependenciesTask>
@@ -52,6 +53,7 @@
   <Target Name="LocalPackages" AfterTargets="ResolveReferences" DependsOnTargets="ValidateBuildTool">
     <LocalSourcesTask
       ToolAssembly="$(_ToolAssembly)"
+      IntermediateOutputPath="$(IntermediateOutputPath)"
       InputReferences="@(ReferencePath)"
       InputCopyLocal="@(ReferenceCopyLocalPaths)"
       RepositoryRoot="$(AardvarkBuildRepositoryRoot)"

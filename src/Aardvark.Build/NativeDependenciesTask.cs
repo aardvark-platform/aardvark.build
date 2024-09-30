@@ -16,30 +16,30 @@ namespace Aardvark.Build
         [Required]
         public string ProjectPath { get; set; }
 
-        [Required]
-        public string OutputPath { get; set; }
-
         [Output]
         public string ZipArchivePath { get; set; }
 
-        protected override string Command
+        protected override string Command => "native-deps";
+
+        protected override List<string> CommandArgs
         {
             get
             {
                 var path = Path.GetDirectoryName(ProjectPath);
 
-                return "native-deps " +
-                       $"--force={Force} " +
-                       $"--path={PathArg(path)} " +
-                       $"--output-path={PathArg(OutputPath)} " +
-                       $"--assembly-name=\"{AssemblyName}\" " +
-                       $"--root={PathArg(RepositoryRoot)}";
+                return new([
+                    $"--force={Force}",
+                    $"--path={path}",
+                    $"--output-path={IntermediateOutputPath}",
+                    $"--assembly-name={AssemblyName}",
+                    $"--root={RepositoryRoot}"
+                ]);
             }
         }
 
-        protected override void ProcessOutput(List<string> output)
+        protected override void ProcessOutput(string[] output)
         {
-            if (output.Count >= 1)
+            if (output.Length >= 1)
             {
                 ZipArchivePath = output[0];
             }

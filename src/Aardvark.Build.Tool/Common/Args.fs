@@ -1,8 +1,9 @@
 ﻿namespace Aardvark.Build.Tool
 
 open System
+open System.IO
 
-type Args (args: string[]) =
+type Args private (args: string[]) =
     let map =
         args |> Array.choose (fun s ->
             let t = s.Split('=', StringSplitOptions.TrimEntries ||| StringSplitOptions.RemoveEmptyEntries)
@@ -12,6 +13,10 @@ type Args (args: string[]) =
                 None
         )
         |> Map.ofArray
+
+    new (path: string) =
+        let args = File.ReadAllLines path
+        Args args
 
     member x.Get (name: string) =
         match map |> Map.tryFind name with

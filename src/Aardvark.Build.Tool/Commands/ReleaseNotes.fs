@@ -16,7 +16,7 @@ module ReleaseNotesCommand =
         Utilities.locateFile (Path.GetFileName >> rx.IsMatch)
 
     let run (args: Args) =
-        let path = args.["path"] |> Path.normalizePathSeparators
+        let path = args.["path"]
 
         let file =
             if File.Exists path then Some path

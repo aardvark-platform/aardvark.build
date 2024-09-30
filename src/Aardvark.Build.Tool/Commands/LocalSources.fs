@@ -174,9 +174,7 @@ module LocalSourcesCommand =
                     "/bin/sh", $"\"{path}\"", path
 
             try
-                let output = Process.run (Some directory) cmd args
-                for o in output do
-                    Log.debug $"{o}"
+                Process.run true (Some directory) cmd args |> ignore
 
             finally
                 File.Delete tempPath
@@ -227,21 +225,21 @@ module LocalSourcesCommand =
         libs
 
     let run (args: Args) =
-        let path = args.["path"] |> Path.normalizePathSeparators
+        let path = args.["path"]
 
         let references =
             match args |> Args.tryGet "references" with
-            | Some paths -> (Path.normalizePathSeparators paths).Split(';')
+            | Some paths -> paths.Split(';')
             | _ -> [||]
 
         let copyLocal =
             match args |> Args.tryGet "copy-local" with
-            | Some paths -> (Path.normalizePathSeparators paths).Split(';')
+            | Some paths -> paths.Split(';')
             | _ -> [||]
 
         let root =
             match args |> Args.tryGet "root" with
-            | Some r -> r |> Path.normalizePathSeparators |> Some
+            | Some r -> Some r
             | _ ->
                 Log.debug "Locating repository root for path: %s" path
                 Utilities.locateRepositoryRoot path

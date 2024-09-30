@@ -7,16 +7,16 @@ module Program =
     [<EntryPoint>]
     let main argv =
         try
-            if argv.Length > 0 then
-                let args = argv |> Array.skip 1 |> Args
-                use _ = Log.init args
+            if argv.Length >= 2 then
+                let args = Args argv.[1]
+                use _ = Log.init argv.[0] args
 
                 let sw = Stopwatch()
                 sw.Start()
 
                 try
                     match argv.[0] with
-                    | "notes" ->
+                    | "release-notes" ->
                         ReleaseNotesCommand.run args
 
                     | "native-deps" ->
@@ -35,7 +35,7 @@ module Program =
                     Log.debug $"Command '{argv.[0]}' took %.3f{elapsedSeconds} seconds."
 
             else
-                Log.error "No commmand specified."
+                Log.error "Usage: <command> <argsfile> (got %A)" argv
                 -1
 
         with e ->

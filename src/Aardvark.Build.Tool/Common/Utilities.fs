@@ -9,7 +9,7 @@ open System.Text.RegularExpressions
 
 module internal Process =
 
-    let run (directory: string option) (cmd: string) (args: string) =
+    let run (writeOutputToConsole: bool) (directory: string option) (cmd: string) (args: string) =
         use p = new Process()
         p.StartInfo.FileName <- cmd
         p.StartInfo.Arguments <- args
@@ -21,6 +21,9 @@ module internal Process =
 
         let output = ResizeArray<string>()
         p.OutputDataReceived.Add (fun args ->
+            if writeOutputToConsole then
+                Console.WriteLine args.Data
+
             if not <| String.IsNullOrWhiteSpace args.Data then
                 lock output (fun _ -> output.Add args.Data)
         )
@@ -54,7 +57,7 @@ module internal Process =
 module internal Git =
 
     let run (repoPath: string) (args: string) =
-        Process.run (Some repoPath) "git" args
+        Process.run false (Some repoPath) "git" args
 
 module internal File =
 
@@ -121,16 +124,9 @@ module internal Directory =
 
 module internal Path =
 
-    let normalizePathSeparators (path: string) =
-        path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
-
     let withTrailingSlash (path: string) =
         if path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar) then path
         else path + string Path.DirectorySeparatorChar
-
-    let withoutTrailingSlash (path: string) =
-        if path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar) then path.Substring(0, path.Length - 1)
-        else path
 
     let toZipEntryName (root: string) (path: string) =
         if path.StartsWith root then

@@ -29,7 +29,9 @@ namespace Aardvark.Build
         [Output]
         public string[] RemoveCopyLocal { get; set; }
 
-        protected override string Command
+        protected override string Command => "local-sources";
+
+        protected override List<string> CommandArgs
         {
             get
             {
@@ -37,17 +39,18 @@ namespace Aardvark.Build
                 var references = string.Join(";", InputReferences);
                 var copyLocal = string.Join(";", InputCopyLocal);
 
-                return "local-sources " +
-                       $"--path={PathArg(path)} " +
-                       $"--references={PathArg(references)} " +
-                       $"--copy-local={PathArg(copyLocal)} " +
-                       $"--root={PathArg(RepositoryRoot)}";
+                return new([
+                    $"--path={path}",
+                    $"--references={references}",
+                    $"--copy-local={copyLocal}",
+                    $"--root={RepositoryRoot}"
+                ]);
             }
         }
 
-        protected override void ProcessOutput(List<string> output)
+        protected override void ProcessOutput(string[] output)
         {
-            if (output.Count >= 4)
+            if (output.Length >= 4)
             {
                 AddReferences = output[0].Split(';');
                 RemoveReferences = output[1].Split(';');

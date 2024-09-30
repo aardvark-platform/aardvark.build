@@ -21,24 +21,28 @@ namespace Aardvark.Build
         [Output]
         public string ReleaseNotes { get; set; }
 
-        protected override string Command
+        protected override string Command => "release-notes";
+
+        protected override List<string> CommandArgs
         {
             get
             {
                 var path = string.IsNullOrEmpty(RepositoryRoot) ? Path.GetDirectoryName(ProjectPath) : RepositoryRoot;
-                return $"notes --path={PathArg(path)}";
+                return new ([
+                    $"--path={path}"
+                ]);
             }
         }
 
-        protected override void ProcessOutput(List<string> output)
+        protected override void ProcessOutput(string[] output)
         {
-            if (output.Count >= 2)
+            if (output.Length >= 2)
             {
                 NugetVersion = output[0];
                 AssemblyVersion = output[1];
 
                 var notes = new StringBuilder();
-                for (int i = 2 ; i < output.Count; i++)
+                for (int i = 2; i < output.Length; i++)
                     notes.AppendLine(output[i]);
 
                 ReleaseNotes = notes.ToString();

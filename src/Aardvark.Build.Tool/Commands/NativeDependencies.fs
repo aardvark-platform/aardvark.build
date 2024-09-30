@@ -61,8 +61,8 @@ module NativeDependenciesCommand =
             false
 
     let run (args: Args) =
-        let path = args.["path"] |> Path.normalizePathSeparators
-        let outputPath = args.["output-path"] |> Path.normalizePathSeparators
+        let path = args.["path"]
+        let outputPath = args.["output-path"]
         let assemblyName = args.["assembly-name"]
 
         let force =
@@ -72,7 +72,7 @@ module NativeDependenciesCommand =
 
         let root =
             match args |> Args.tryGet "root" with
-            | Some r -> r |> Path.normalizePathSeparators |> Some
+            | Some r -> Some r
             | _ ->
                 Log.debug "Locating repository root for path: %s" path
                 Utilities.locateRepositoryRoot path
