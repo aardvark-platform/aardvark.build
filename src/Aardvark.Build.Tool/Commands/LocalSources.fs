@@ -15,7 +15,9 @@ module LocalSourcesCommand =
         let private rx = Regex(@"^(?<indent>[ \t]*)(?<content>.*)$", RegexOptions.Compiled)
 
         let parse (file: string) : Map<string, string list> =
-            if File.Exists file then
+            let info = FileInfo file
+
+            if info.Exists then
                 Log.debug $"Found local sources: {file}"
 
                 try
@@ -30,7 +32,7 @@ module LocalSourcesCommand =
                             let content = m.Groups.["content"].Value
 
                             if isTop then
-                                let path = Path.GetFullPath(content, Directory.GetCurrentDirectory())
+                                let path = Path.GetFullPath(content, info.DirectoryName)
 
                                 if not <| Directory.Exists path then
                                     Log.warn $"Directory '{path}' does not exist ({file})."
@@ -55,7 +57,7 @@ module LocalSourcesCommand =
 
         let rec private parseAllInternal (accum: Map<string, string list>) (directory: string) =
             try
-                let directory = Path.GetFullPath(directory, Directory.GetCurrentDirectory())
+                let directory = Path.GetFullPath(directory)
 
                 let t = parse <| Path.Combine(directory, "local.sources")
                 if Map.isEmpty t then
@@ -63,8 +65,8 @@ module LocalSourcesCommand =
                 else
                     let mutable res = accum
                     for KeyValue(tt, v) in t do
-                        res <- Map.add tt v res
-                        if tt <> directory then
+                        if res |> Map.containsKey tt |> not then
+                            res <- Map.add tt v res
                             res <- parseAllInternal res tt
                     res
 
