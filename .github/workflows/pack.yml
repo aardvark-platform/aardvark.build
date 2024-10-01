@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - standalone-tool
     paths:
       - RELEASE_NOTES.md
       - .github/workflows/pack.yml
@@ -71,13 +70,13 @@ jobs:
       - name: Pack
         shell: cmd
         run: pack.cmd
-      # - name: Upload Package
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: packages
-      #     path: bin\pack
-      # - name: NuGet
-      #   env:
-      #     NUGET_KEY: ${{ secrets.NUGET_KEY }}
-      #   shell: cmd
-      #   run: dotnet nuget push "bin\pack\*.nupkg" -k %NUGET_KEY% -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+      - name: Upload Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: bin\pack
+      - name: NuGet
+        env:
+          NUGET_KEY: ${{ secrets.NUGET_KEY }}
+        shell: cmd
+        run: dotnet nuget push "bin\pack\*.nupkg" -k %NUGET_KEY% -s "https://api.nuget.org/v3/index.json" --skip-duplicate

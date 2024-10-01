@@ -1,3 +1,10 @@
+### 2.0.0
+- Reworked as standalone tool
+- Added support for preliminary release notes
+- Added support for relative paths in local.sources files
+- [aardpack] Added debug switch for debug configuration
+- [aardpack] Fixed support for empty target
+
 ### 1.0.25
 - Make locating of release notes more flexible to support repositories with separate release notes for each project (previous implementation lead to problem with native dependencies).
 
