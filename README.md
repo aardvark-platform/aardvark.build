@@ -22,6 +22,8 @@ Aardvark.Build should work out of the box without further configuration. Neverth
 
 * `AardvarkBuildForceNativeRepack`: If set to `True`, the up-to-date check for packing native dependencies is skipped. As a consequence, native dependencies will be rezipped even if nothing changed.
 
+* `AardvarkBuildToolAssembly`: Path to the `Aardvark.Build.dll` assembly. By default `..\standalone-tool\Aardvark.Build.dll` from the location of the `*.targets` file is used.
+
 * `AardvarkBuildVerbosity`: Determines how much information is printed to the console.
   * `Minimal` - errors only
   * `Normal` - warnings and errors (default)
@@ -80,7 +82,7 @@ For adding an external repository you need to create a file called `local.source
     dotnet build
     dotnet pack -o {OUTPUT}
 
-/home/dev/otherrepo
+../otherrepo
     dotnet tool restore
     dotnet build MyProj/MyProj.fsproj
     dotnet paket pack {OUTPUT}

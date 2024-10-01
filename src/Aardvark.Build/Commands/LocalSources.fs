@@ -227,7 +227,7 @@ module LocalSourcesCommand =
         libs
 
     let run (args: Args) =
-        let path = args.["path"]
+        let path = Path.GetDirectoryName args.["project-path"]
 
         let references =
             match args |> Args.tryGet "references" with
@@ -240,7 +240,7 @@ module LocalSourcesCommand =
             | _ -> [||]
 
         let root =
-            match args |> Args.tryGet "root" with
+            match args |> Args.tryGet "repository-root" with
             | Some r -> Some r
             | _ ->
                 Log.debug "Locating repository root for path: %s" path
@@ -317,23 +317,23 @@ module LocalSourcesCommand =
             let copyLocalPackages = Dictionary<_, _>()
 
             let addReferences = ResizeArray<_>()
-            let removeReferences = ResizeArray<_>()
+            let remReferences = ResizeArray<_>()
 
             let addCopyLocal = ResizeArray<_>()
-            let removeCopyLocal = ResizeArray<_>()
+            let remCopyLocal = ResizeArray<_>()
 
             for r in references do
                 match getOverridePackage r with
                 | Some pkg ->
                     referencedPackages.[pkg.Id.ToLowerInvariant()] <- pkg
-                    removeReferences.Add r
+                    remReferences.Add r
                 | _ -> ()
 
             for c in copyLocal do
                 match getOverridePackage c with
                 | Some pkg ->
                     copyLocalPackages.[pkg.Id.ToLowerInvariant()] <- pkg
-                    removeCopyLocal.Add c
+                    remCopyLocal.Add c
                 | _ -> ()
 
             for pkg in referencedPackages.Values do
@@ -343,10 +343,10 @@ module LocalSourcesCommand =
             for pkg in copyLocalPackages.Values do
                 addCopyLocal.AddRange pkg.Assemblies
 
-            Log.output "%s" (addReferences |> String.concat ";")
-            Log.output "%s" (removeReferences |> String.concat ";")
-            Log.output "%s" (addCopyLocal |> String.concat ";")
-            Log.output "%s" (removeCopyLocal |> String.concat ";")
+            File.WriteAllText(args.["output-add-references"], addReferences |> String.concat ";")
+            File.WriteAllText(args.["output-rem-references"], remReferences |> String.concat ";")
+            File.WriteAllText(args.["output-add-copy-local"], addCopyLocal |> String.concat ";")
+            File.WriteAllText(args.["output-rem-copy-local"], remCopyLocal |> String.concat ";")
 
         | None ->
             Log.warn "Could not find repository root (please specify AardvarkBuildRepositoryRoot Property)"

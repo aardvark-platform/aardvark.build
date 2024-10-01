@@ -17,9 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\RELEASE_NOTES.md = ..\RELEASE_NOTES.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.csproj", "{A750360F-A157-463C-87EF-FC19D19D9AB9}"
-EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build.Tool", "Aardvark.Build.Tool\Aardvark.Build.Tool.fsproj", "{1CD07023-B27B-44E3-88D8-D3D2D171819D}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build", "Aardvark.Build\Aardvark.Build.fsproj", "{1CD07023-B27B-44E3-88D8-D3D2D171819D}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Aardvark.Build.Tests", "Tests\Aardvark.Build.Tests\Aardvark.Build.Tests.fsproj", "{6B4D9DEF-3CD9-4DCA-8304-60FD65A58901}"
 EndProject
@@ -41,10 +39,6 @@ Global
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF860B59-629E-4614-ADB7-3AB402BF7358}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A750360F-A157-463C-87EF-FC19D19D9AB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A750360F-A157-463C-87EF-FC19D19D9AB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A750360F-A157-463C-87EF-FC19D19D9AB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A750360F-A157-463C-87EF-FC19D19D9AB9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1CD07023-B27B-44E3-88D8-D3D2D171819D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1CD07023-B27B-44E3-88D8-D3D2D171819D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1CD07023-B27B-44E3-88D8-D3D2D171819D}.Release|Any CPU.ActiveCfg = Release|Any CPU

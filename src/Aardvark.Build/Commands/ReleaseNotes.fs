@@ -6,23 +6,26 @@ open Fake.Core
 
 module ReleaseNotesCommand =
 
-    let private printNotes (nugetVersion: string) (assemblyVersion: string) (notes: string list) =
-        Log.output "%s" nugetVersion
-        Log.output "%s" assemblyVersion
-        for n in notes do Log.output "%s" n
-
     let private findNotesFile =
         let rx = Regex(@"^release(_|-)?notes(\.md)?$", RegexOptions.IgnoreCase ||| RegexOptions.Compiled)
         Utilities.locateFile (Path.GetFileName >> rx.IsMatch)
 
     let run (args: Args) =
-        let path = args.["path"]
+        let path =
+            match args |> Args.tryGet "repository-root" with
+            | Some root -> root
+            | _ -> Path.GetDirectoryName(args.["project-path"])
 
         let file =
             if File.Exists path then Some path
             else
                 Log.debug "Locating release notes for path: %s" path
                 findNotesFile path
+
+        let printNotes (nugetVersion: string) (assemblyVersion: string) (notes: string list) =
+            File.WriteAllText(args.["output-nuget-version"], nugetVersion)
+            File.WriteAllText(args.["output-assembly-version"], assemblyVersion)
+            File.WriteAllLines(args.["output-release-notes"], notes)
 
         match file with
         | Some file ->

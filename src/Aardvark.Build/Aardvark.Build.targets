@@ -1,26 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <_ToolAssembly>$(MSBuildThisFileDirectory)..\standalone-tool\Aardvark.Build.Tool.dll</_ToolAssembly>
+    <AardvarkBuildToolAssembly Condition="'$(AardvarkBuildToolAssembly)' == ''">$(MSBuildThisFileDirectory)..\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
   </PropertyGroup>
 
   <Target Name="ValidateBuildTool">
-    <Error Text="Tool assembly '$(_ToolAssembly)' not found." Condition="!Exists('$(_ToolAssembly)')" />
+    <Error Text="Tool assembly '$(AardvarkBuildToolAssembly)' not found." Condition="!Exists('$(AardvarkBuildToolAssembly)')" />
   </Target>
 
-  <UsingTask TaskName="Aardvark.Build.ReleaseNotesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild;GenerateNuspec" DependsOnTargets="ValidateBuildTool">
-    <ReleaseNotesTask
-      ToolAssembly="$(_ToolAssembly)"
-      DesignTime="$(DesignTimeBuild)"
-      IntermediateOutputPath="$(IntermediateOutputPath)"
-      RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
-      ProjectPath="$(MSBuildProjectFullPath)"
-      Verbosity="$(AardvarkBuildVerbosity)">
-      <Output TaskParameter="NugetVersion" PropertyName="NugetVersion"/>
-      <Output TaskParameter="AssemblyVersion" PropertyName="AssemblyVersion"/>
-      <Output TaskParameter="ReleaseNotes" PropertyName="ReleaseNotes"/>
-    </ReleaseNotesTask>
+  <!-- Locates and parses release notes setting versions and release notes properties -->
+  <Target Name="GetReleaseNotesVersion" BeforeTargets="BeforeBuild;GenerateNuspec" DependsOnTargets="ValidateBuildTool" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <Command>release-notes</Command>
+      <ArgumentsFile>$(IntermediateOutputPath)$(Command).args</ArgumentsFile>
+      <NugetVersionFile>$(IntermediateOutputPath)nuget-version.out</NugetVersionFile>
+      <AssemblyVersionFile>$(IntermediateOutputPath)assembly-version.out</AssemblyVersionFile>
+      <ReleaseNotesFile>$(IntermediateOutputPath)release-notes.out</ReleaseNotesFile>
+      <Arguments>
+        --output-nuget-version=$(NugetVersionFile)
+        --output-assembly-version=$(AssemblyVersionFile)
+        --output-release-notes=$(ReleaseNotesFile)
+        --project-path=$(MSBuildProjectFullPath)
+        --repository-root=$(AardvarkBuildRepositoryRoot)
+        --verbosity=$(AardvarkBuildVerbosity)
+      </Arguments>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <FileWrites Include="$(ArgumentsFile);$(NugetVersionFile);$(AssemblyVersionFile);$(ReleaseNotesFile)" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(ArgumentsFile)" Lines="$(Arguments)" Overwrite="true" />
+    <Exec Command="dotnet &quot;$(AardvarkBuildToolAssembly)&quot; $(Command) &quot;$(ArgumentsFile)&quot;" />
+
+    <ReadLinesFromFile File="$(NugetVersionFile)">
+      <Output TaskParameter="Lines" PropertyName="NugetVersion"/>
+    </ReadLinesFromFile>
+
+    <ReadLinesFromFile File="$(AssemblyVersionFile)">
+      <Output TaskParameter="Lines" PropertyName="AssemblyVersion"/>
+    </ReadLinesFromFile>
+
+    <ReadLinesFromFile File="$(ReleaseNotesFile)">
+      <Output TaskParameter="Lines" PropertyName="ReleaseNotes"/>
+    </ReadLinesFromFile>
+
     <PropertyGroup>
       <Version Condition="'$(AssemblyVersion)' != ''">$(AssemblyVersion)</Version>
       <AssemblyVersion Condition="'$(AssemblyVersion)' != ''">$(AssemblyVersion)</AssemblyVersion>
@@ -31,44 +55,86 @@
     </PropertyGroup>
   </Target>
 
-  <UsingTask TaskName="Aardvark.Build.NativeDependenciesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
-  <Target Name="PackNativeDependencies" BeforeTargets="BeforeBuild" DependsOnTargets="ValidateBuildTool">
-    <NativeDependenciesTask
-      ToolAssembly="$(_ToolAssembly)"
-      DesignTime="$(DesignTimeBuild)"
-      IntermediateOutputPath="$(IntermediateOutputPath)"
-      AssemblyName="$(AssemblyName)"
-      RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
-      Force="$(AardvarkBuildForceNativeRepack)"
-      ProjectPath="$(MSBuildProjectFullPath)"
-      Verbosity="$(AardvarkBuildVerbosity)">
-      <Output TaskParameter="ZipArchivePath" PropertyName="_NativeZipPath"/>
-    </NativeDependenciesTask>
+  <!-- Packs native dependencies into a ZIP archive and adds it as embedded resource -->
+  <Target Name="PackNativeDependencies" BeforeTargets="BeforeBuild" DependsOnTargets="ValidateBuildTool" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <Command>native-deps</Command>
+      <ArgumentsFile>$(IntermediateOutputPath)$(Command).args</ArgumentsFile>
+      <NativeZipFile>$(IntermediateOutputPath)native.zip</NativeZipFile>
+      <Arguments>
+        --force=$(AardvarkBuildForceNativeRepack)
+        --assembly-name=$(AssemblyName)
+        --zip-path=$(NativeZipFile)
+        --project-path=$(MSBuildProjectFullPath)
+        --repository-root=$(AardvarkBuildRepositoryRoot)
+        --verbosity=$(AardvarkBuildVerbosity)
+      </Arguments>
+    </PropertyGroup>
+
     <ItemGroup>
-      <EmbeddedResource Include="$(_NativeZipPath)" LogicalName="native.zip" Condition="'$(_NativeZipPath)' != '' AND Exists('$(_NativeZipPath)')"/>
+      <FileWrites Include="$(ArgumentsFile);$(NativeZipFile);" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(ArgumentsFile)" Lines="$(Arguments)" Overwrite="true" />
+    <Exec Command="dotnet &quot;$(AardvarkBuildToolAssembly)&quot; $(Command) &quot;$(ArgumentsFile)&quot;" />
+
+    <ItemGroup>
+      <EmbeddedResource Include="$(NativeZipFile)" LogicalName="native.zip" Condition="'$(NativeZipFile)' != '' AND Exists('$(NativeZipFile)')"/>
     </ItemGroup>
   </Target>
 
-  <UsingTask TaskName="Aardvark.Build.LocalSourcesTask" AssemblyFile="$(MSBuildThisFileDirectory)Aardvark.Build.dll" />
+  <!-- Builds local packages and injects their assemblies -->
   <Target Name="LocalPackages" AfterTargets="ResolveReferences" DependsOnTargets="ValidateBuildTool">
-    <LocalSourcesTask
-      ToolAssembly="$(_ToolAssembly)"
-      IntermediateOutputPath="$(IntermediateOutputPath)"
-      InputReferences="@(ReferencePath)"
-      InputCopyLocal="@(ReferenceCopyLocalPaths)"
-      RepositoryRoot="$(AardvarkBuildRepositoryRoot)"
-      ProjectPath="$(MSBuildProjectFullPath)"
-      Verbosity="$(AardvarkBuildVerbosity)">
-      <Output TaskParameter="AddReferences" PropertyName="_AddReferences"/>
-      <Output TaskParameter="RemoveReferences" PropertyName="_RemoveReferences"/>
-      <Output TaskParameter="AddCopyLocal" PropertyName="_AddCopyLocal"/>
-      <Output TaskParameter="RemoveCopyLocal" PropertyName="_RemoveCopyLocal"/>
-    </LocalSourcesTask>
+    <PropertyGroup>
+      <Command>local-sources</Command>
+      <ArgumentsFile>$(IntermediateOutputPath)$(Command).args</ArgumentsFile>
+      <AddReferencesFile>$(IntermediateOutputPath)add-references.out</AddReferencesFile>
+      <RemReferencesFile>$(IntermediateOutputPath)rem-references.out</RemReferencesFile>
+      <AddCopyLocalFile>$(IntermediateOutputPath)add-copy-local.out</AddCopyLocalFile>
+      <RemCopyLocalFile>$(IntermediateOutputPath)rem-copy-local.out</RemCopyLocalFile>
+      <ReferencePath>@(ReferencePath)</ReferencePath>
+      <ReferenceCopyLocalPaths>@(ReferenceCopyLocalPaths)</ReferenceCopyLocalPaths>
+      <Arguments>
+        --output-add-references=$(AddReferencesFile)
+        --output-rem-references=$(RemReferencesFile)
+        --output-add-copy-local=$(AddCopyLocalFile)
+        --output-rem-copy-local=$(RemCopyLocalFile)
+        --references=$([MSBuild]::Escape('$(ReferencePath)'))
+        --copy-local=$([MSBuild]::Escape('$(ReferenceCopyLocalPaths)'))
+        --project-path=$(MSBuildProjectFullPath)
+        --repository-root=$(AardvarkBuildRepositoryRoot)
+        --verbosity=$(AardvarkBuildVerbosity)
+      </Arguments>
+    </PropertyGroup>
+
     <ItemGroup>
-      <ReferencePath Remove="$(_RemoveReferences)" />
-      <ReferencePath Include="$(_AddReferences)" />
-      <ReferenceCopyLocalPaths Remove="$(_RemoveCopyLocal)" />
-      <ReferenceCopyLocalPaths Include="$(_AddCopyLocal)" />
+      <FileWrites Include="$(ArgumentsFile);$(AddReferencesFile);$(RemReferencesFile);$(AddCopyLocalFile);$(RemCopyLocalFile)" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(ArgumentsFile)" Lines="$(Arguments)" Overwrite="true" />
+    <Exec Command="dotnet &quot;$(AardvarkBuildToolAssembly)&quot; $(Command) &quot;$(ArgumentsFile)&quot;" />
+
+    <ReadLinesFromFile File="$(AddReferencesFile)">
+      <Output TaskParameter="Lines" PropertyName="AddReferences"/>
+    </ReadLinesFromFile>
+
+    <ReadLinesFromFile File="$(RemReferencesFile)">
+      <Output TaskParameter="Lines" PropertyName="RemReferences"/>
+    </ReadLinesFromFile>
+
+    <ReadLinesFromFile File="$(AddCopyLocalFile)">
+      <Output TaskParameter="Lines" PropertyName="AddCopyLocal"/>
+    </ReadLinesFromFile>
+
+    <ReadLinesFromFile File="$(RemCopyLocalFile)">
+      <Output TaskParameter="Lines" PropertyName="RemCopyLocal"/>
+    </ReadLinesFromFile>
+
+    <ItemGroup>
+      <ReferencePath Remove="$([MSBuild]::Unescape('$(RemReferences)'))" />
+      <ReferencePath Include="$([MSBuild]::Unescape('$(AddReferences)'))" />
+      <ReferenceCopyLocalPaths Remove="$([MSBuild]::Unescape('$(RemCopyLocal)'))" />
+      <ReferenceCopyLocalPaths Include="$([MSBuild]::Unescape('$(AddCopyLocal)'))" />
     </ItemGroup>
   </Target>
 </Project>

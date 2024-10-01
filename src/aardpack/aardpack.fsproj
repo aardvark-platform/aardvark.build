@@ -8,11 +8,12 @@
     <Authors>Aardvark Platform Team</Authors>
     <Description>.NET tool for packing Aardvark Platform projects.</Description>
     <OutputPath>..\..\bin\$(Configuration)</OutputPath>
+    <AardvarkBuildToolAssembly>..\..\bin\Debug\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.fs" />
     <None Include="paket.references" />
   </ItemGroup>
-  <Import Project="..\..\bin\Release\build\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\..\bin\Release\build\Aardvark.Build.targets')" />
+  <Import Project="..\Aardvark.Build\Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\..\bin\Debug\standalone-tool\Aardvark.Build.dll')" />
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

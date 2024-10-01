@@ -1,8 +1,5 @@
 ﻿namespace Aardvark.Build.Tool
 
-open System
-open System.IO
-
 type Verbosity =
     | Minimal  = 0
     | Normal   = 1
@@ -12,26 +9,21 @@ type Verbosity =
 module Log =
 
     type Level =
-        | Output  = -1
         | Error   = 0
         | Warning = 1
         | Info    = 2
         | Debug   = 3
 
     let mutable private command = ""
-    let mutable private outputWriter = Unchecked.defaultof<TextWriter>
-
     let mutable private verbosity = Verbosity.Normal
 
     let private getWriter (level: Level) =
         match level with
         | Level.Error | Level.Warning -> System.Console.Error
-        | Level.Output -> outputWriter
         | _ -> System.Console.Out
 
     let init (cmd: string) (args: Args) =
         command <- cmd
-        outputWriter <- new StreamWriter(args.["output-file"])
 
         args |> Args.iter "verbosity" (fun v ->
             match v.ToLowerInvariant() with
@@ -41,13 +33,6 @@ module Log =
             | "debug"    -> verbosity <- Verbosity.Debug
             | _ -> ()
         )
-
-        { new IDisposable with
-            member x.Dispose() =
-                if outputWriter <> null then
-                    outputWriter.Dispose()
-                    outputWriter <- null
-        }
 
     let private line (level: Level) (str: string) =
         if int verbosity >= int level then
@@ -70,4 +55,3 @@ module Log =
     let warn fmt = diag false fmt
     let info fmt = msg Level.Info fmt
     let debug fmt = msg Level.Debug fmt
-    let output fmt = fmt |> Printf.kprintf (line Level.Output)

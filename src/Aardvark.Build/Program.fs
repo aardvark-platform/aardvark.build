@@ -9,7 +9,7 @@ module Program =
         try
             if argv.Length >= 2 then
                 let args = Args argv.[1]
-                use _ = Log.init argv.[0] args
+                Log.init argv.[0] args
 
                 let sw = Stopwatch()
                 sw.Start()

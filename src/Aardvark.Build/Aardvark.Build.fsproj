@@ -9,8 +9,10 @@
     <OutputPath>..\..\bin\$(Configuration)\standalone-tool</OutputPath>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <SatelliteResourceLanguages>en-US;en</SatelliteResourceLanguages>
+    <AardvarkBuildToolAssembly>..\..\bin\Debug\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="paket.template" />
     <None Include="paket.references" />
     <Compile Include="Common\Args.fs" />
     <Compile Include="Common\Logger.fs" />
@@ -19,6 +21,8 @@
     <Compile Include="Commands\NativeDependencies.fs" />
     <Compile Include="Commands\LocalSources.fs" />
     <Compile Include="Program.fs" />
+    <None Include="Aardvark.Build.targets" />
   </ItemGroup>
+  <Import Project="Aardvark.Build.targets" Condition="'$(Configuration)' == 'Release' AND Exists('..\..\bin\Debug\standalone-tool\Aardvark.Build.dll')" />
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

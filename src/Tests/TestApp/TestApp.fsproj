@@ -7,10 +7,10 @@
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <OutputPath>..\..\..\bin\$(Configuration)\tests</OutputPath>
     <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <AardvarkBuildToolAssembly>..\..\..\bin\$(Configuration)\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
     <AardvarkBuildRepositoryRoot>$(MSBuildThisFileDirectory)</AardvarkBuildRepositoryRoot>
     <AardvarkBuildVerbosity>Debug</AardvarkBuildVerbosity>
     <AardvarkBuildForceNativeRepack>False</AardvarkBuildForceNativeRepack>
-    <_AardvarkBuildTargets>..\..\..\bin\$(Configuration)\build\Aardvark.Build.targets</_AardvarkBuildTargets>
   </PropertyGroup>
   <ItemGroup>
     <None Include="local.sources" />
@@ -22,11 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\TestLibA\TestLibA.fsproj" />
   </ItemGroup>
-  <Import Project="$(_AardvarkBuildTargets)" Condition="Exists('$(_AardvarkBuildTargets)')" />
+  <Import Project="..\..\Aardvark.Build\Aardvark.Build.targets" />
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
-  <Target Name="ValidateBuild" BeforeTargets="BeforeBuild">
-    <Error
-        Text="Aardvark.Build and Aardvark.Build.Tool ($(Configuration)) must be built manually."
-        Condition="!Exists('$(_AardvarkBuildTargets)')" />
-  </Target>
 </Project>

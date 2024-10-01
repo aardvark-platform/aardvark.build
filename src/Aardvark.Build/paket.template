@@ -5,6 +5,4 @@ description Aardvark Native Build Helper
 developmentDependency true
 files
   ../../bin/publish/standalone-tool/* ==> standalone-tool
-  ../../bin/Release/build/Aardvark.Build.dll ==> build
-  ../../bin/Release/build/Aardvark.Build.deps.json ==> build
   Aardvark.Build.targets ==> build

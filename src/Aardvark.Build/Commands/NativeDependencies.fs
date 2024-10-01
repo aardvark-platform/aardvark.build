@@ -54,15 +54,13 @@ module NativeDependenciesCommand =
 
             zip.Finish()
             zip.Close()
-            true
 
         with e ->
             Log.warn $"Failed to pack native dependencies: {e.Message}"
-            false
 
     let run (args: Args) =
-        let path = args.["path"]
-        let outputPath = args.["output-path"]
+        let path = Path.GetDirectoryName args.["project-path"]
+        let zipPath = args.["zip-path"]
         let assemblyName = args.["assembly-name"]
 
         let force =
@@ -71,7 +69,7 @@ module NativeDependenciesCommand =
             | _ -> false
 
         let root =
-            match args |> Args.tryGet "root" with
+            match args |> Args.tryGet "repository-root" with
             | Some r -> Some r
             | _ ->
                 Log.debug "Locating repository root for path: %s" path
@@ -83,8 +81,6 @@ module NativeDependenciesCommand =
 
             match tryFindLibs assemblyName root with
             | Some libs ->
-                let zipPath = Path.Combine(outputPath, "native.zip")
-
                 let requirePack =
                     if File.Exists zipPath then
                         if force then
@@ -103,8 +99,8 @@ module NativeDependenciesCommand =
                         Log.info $"Packing native dependencies: {libs} -> {zipPath}"
                         true
 
-                if not requirePack || zip 9 libs zipPath then
-                    Log.output $"{zipPath}"
+                if requirePack then
+                    zip 9 libs zipPath
 
             | _ ->
                 Log.debug $"Did not find a libs folder"

@@ -23,8 +23,7 @@ module BuildTests =
     [<OneTimeSetUp>]
     let Build() =
         let srcRoot = Path.Combine(__SOURCE_DIRECTORY__, "..", "..")
-        DotNet.build Framework.NetStandard20 <| Path.Combine(srcRoot, "Aardvark.Build", "Aardvark.Build.csproj")
-        DotNet.build Framework.Net8 <| Path.Combine(srcRoot, "Aardvark.Build.Tool", "Aardvark.Build.Tool.fsproj")
+        DotNet.build Framework.Net8 <| Path.Combine(srcRoot, "Aardvark.Build", "Aardvark.Build.fsproj")
         DotNet.build framework <| Path.Combine(srcRoot, "Tests", "TestApp", "TestApp.fsproj")
 
         let assemblyName =
@@ -71,6 +70,7 @@ module BuildTests =
 
             let nuspec = zip.ReadEntry("TestApp.nuspec")
             nuspec.Contains("<releaseNotes>- Test") |> should be True
+            nuspec.Contains("- Include ; some ; semicolons") |> should be True
 
         finally
             if Directory.Exists "pack" then Directory.Delete("pack", true)
