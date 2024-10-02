@@ -11,6 +11,9 @@
     <AardvarkBuildToolAssembly>..\..\bin\Debug\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Utilities\Extensions.fs" />
+    <Compile Include="Utilities\Log.fs" />
+    <Compile Include="Utilities\ObservableTextWriter.fs" />
     <Compile Include="Program.fs" />
     <None Include="paket.references" />
   </ItemGroup>
