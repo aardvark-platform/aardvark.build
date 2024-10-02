@@ -8,7 +8,10 @@
     <OutputPath>..\..\..\bin\$(Configuration)\tests</OutputPath>
     <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
     <AardvarkBuildToolAssembly>..\..\..\bin\$(Configuration)\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
-    <AardvarkBuildRepositoryRoot>$(MSBuildThisFileDirectory)</AardvarkBuildRepositoryRoot>
+    <AardvarkBuildReleaseNotes></AardvarkBuildReleaseNotes>
+    <AardvarkBuildNativeDependencies></AardvarkBuildNativeDependencies>
+    <AardvarkBuildLocalSources></AardvarkBuildLocalSources>
+    <AardvarkBuildDisableLocalSources>False</AardvarkBuildDisableLocalSources>
     <AardvarkBuildVerbosity>Debug</AardvarkBuildVerbosity>
     <AardvarkBuildForceNativeRepack>False</AardvarkBuildForceNativeRepack>
   </PropertyGroup>

@@ -125,7 +125,7 @@ module internal Directory =
 module internal Path =
 
     let withTrailingSlash (path: string) =
-        if path.EndsWith(Path.DirectorySeparatorChar) || path.EndsWith(Path.AltDirectorySeparatorChar) then path
+        if Path.EndsInDirectorySeparator path then path
         else path + string Path.DirectorySeparatorChar
 
     let toZipEntryName (root: string) (path: string) =
@@ -170,38 +170,23 @@ module internal Utilities =
                 repositoryRootIndicators |> List.exists (fun r -> r.IsMatch name)
             )
 
-    let rec locateRepositoryRoot (directory: string) =
+    /// Traverses up the directory hierarchy from the given directory until the chooser evaluates to Some.
+    /// Stops after the repository root has been reached.
+    let rec locate (name: string) (chooser: string -> 'T option) (directory: string) =
         try
             Log.debug "Locating: %s" directory
 
             if Directory.Exists directory then
-                if isRepositoryRoot directory then Some directory
-                else
-                    let parent = Directory.GetParent directory
-                    if isNull parent then None
-                    else locateRepositoryRoot parent.FullName
-            else
-                None
-        with e ->
-            Log.warn $"Error while locating repository root: {e}"
-            None
+                let result = chooser directory
 
-    let rec locateFile (predicate: string -> bool) (directory: string) =
-        try
-            Log.debug "Locating: %s" directory
-
-            if Directory.Exists directory then
-                let files = Directory.GetFiles directory
-                let found = files |> Array.tryFind predicate
-
-                if found.IsSome then found
+                if result.IsSome then result
                 elif isRepositoryRoot directory then None
                 else
                     let parent = Directory.GetParent directory
                     if isNull parent then None
-                    else locateFile predicate parent.FullName
+                    else locate name chooser parent.FullName
             else
                 None
         with e ->
-            Log.warn $"Error while locating file: {e}"
+            Log.warn $"Error while locating {name}: {e}"
             None

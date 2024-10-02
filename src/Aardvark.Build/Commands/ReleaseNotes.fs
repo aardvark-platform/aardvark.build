@@ -8,17 +8,23 @@ module ReleaseNotesCommand =
 
     let private findNotesFile =
         let rx = Regex(@"^release(_|-)?notes(\.md)?$", RegexOptions.IgnoreCase ||| RegexOptions.Compiled)
-        Utilities.locateFile (Path.GetFileName >> rx.IsMatch)
+
+        Utilities.locate "release notes file" (fun directory ->
+            let files = Directory.GetFiles directory
+            files |> Array.tryFind (Path.GetFileName >> rx.IsMatch)
+        )
 
     let run (args: Args) =
-        let path =
-            match args |> Args.tryGet "repository-root" with
-            | Some root -> root
-            | _ -> Path.GetDirectoryName(args.["project-path"])
-
         let file =
-            if File.Exists path then Some path
-            else
+            match args |> Args.tryGet "release-notes-path" with
+            | Some f ->
+                if File.Exists f then Some f
+                else
+                    Log.warn $"Release notes file does not exist: {f}"
+                    None
+
+            | _ ->
+                let path = Path.GetDirectoryName(args.["project-path"])
                 Log.debug "Locating release notes for path: %s" path
                 findNotesFile path
 

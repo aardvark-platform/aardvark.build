@@ -18,9 +18,16 @@ Reference the `Aardvark.Build` package in your project to install the custom MSB
 
 ## Configuration
 Aardvark.Build should work out of the box without further configuration. Nevertheless, there are some MSBuild properties that can be modified for special scenarios and troubleshooting:
-* `AardvarkBuildRepositoryRoot`: Path to the repository root that contains the project. The root folder is where the `libs` folder containing native dependencies is located. If not set, the root is located by traversing up from the project file until either the `.git` folder or the `paket.dependencies` file is found.
+
+* `AardvarkBuildReleaseNotes`: Path to the release notes file.
+  
+* `AardvarkBuildNativeDependencies`: Path to the folder containing the native dependencies of the project. The contents of the folders will be added to the `native.zip` archive that is embedded into the assembly.
+
+* `AardvarkBuildLocalSources`: Path to the local sources file.
 
 * `AardvarkBuildForceNativeRepack`: If set to `True`, the up-to-date check for packing native dependencies is skipped. As a consequence, native dependencies will be rezipped even if nothing changed.
+  
+* `AardvarkBuildDisableLocalSources`: If set to `True`, local sources are not built and injected.
 
 * `AardvarkBuildToolAssembly`: Path to the `Aardvark.Build.dll` assembly. By default `..\standalone-tool\Aardvark.Build.dll` from the location of the `*.targets` file is used.
 

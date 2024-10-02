@@ -14,6 +14,13 @@ module LocalSourcesCommand =
 
         let private rx = Regex(@"^(?<indent>[ \t]*)(?<content>.*)$", RegexOptions.Compiled)
 
+        let find =
+            Utilities.locate "local sources" (fun directory ->
+                let file = Path.Combine(directory, "local.sources")
+                if File.Exists file then Some file
+                else None
+            )
+
         let parse (file: string) : Map<string, string list> =
             let info = FileInfo file
 
@@ -57,8 +64,6 @@ module LocalSourcesCommand =
 
         let rec private parseAllInternal (accum: Map<string, string list>) (directory: string) =
             try
-                let directory = Path.GetFullPath(directory)
-
                 let t = parse <| Path.Combine(directory, "local.sources")
                 if Map.isEmpty t then
                     accum
@@ -74,9 +79,12 @@ module LocalSourcesCommand =
                 Log.warn $"Error while traversing '{directory}' for local sources: {e.Message}"
                 accum
 
-        let parseAll (directory: string) =
-            directory
-            |> parseAllInternal Map.empty
+        let parseAll (file: string) =
+            let path = file |> Path.GetFullPath |> Path.GetDirectoryName
+
+            path
+            |> parseAllInternal (Map.ofList [path, []])
+            |> Map.filter (fun _ -> List.isEmpty >> not)
             |> Map.toList
 
     module private Cache =
@@ -227,8 +235,6 @@ module LocalSourcesCommand =
         libs
 
     let run (args: Args) =
-        let path = Path.GetDirectoryName args.["project-path"]
-
         let references =
             match args |> Args.tryGet "references" with
             | Some paths -> paths.Split(';')
@@ -239,16 +245,22 @@ module LocalSourcesCommand =
             | Some paths -> paths.Split(';')
             | _ -> [||]
 
-        let root =
-            match args |> Args.tryGet "repository-root" with
-            | Some r -> Some r
-            | _ ->
-                Log.debug "Locating repository root for path: %s" path
-                Utilities.locateRepositoryRoot path
+        let sourcesFile =
+            match args |> Args.tryGet "local-sources-path" with
+            | Some f ->
+                if File.Exists f then Some f
+                else
+                    Log.warn $"Local sources file does not exist: {f}"
+                    None
 
-        match root with
-        | Some root ->
-            let sources = LocalSources.parseAll root
+            | _ ->
+                let path = Path.GetDirectoryName args.["project-path"]
+                Log.debug "Locating local sources for path: %s" path
+                LocalSources.find path
+
+        match sourcesFile with
+        | Some sourcesFile ->
+            let sources = LocalSources.parseAll sourcesFile
 
             let assemblies =
                 sources |> List.map (fun (path, cmds) ->
@@ -349,6 +361,6 @@ module LocalSourcesCommand =
             File.WriteAllText(args.["output-rem-copy-local"], remCopyLocal |> String.concat ";")
 
         | None ->
-            Log.warn "Could not find repository root (please specify AardvarkBuildRepositoryRoot Property)"
+            Log.debug $"Did not find local sources file"
 
         0

@@ -20,8 +20,8 @@
         --output-nuget-version=$(NugetVersionFile)
         --output-assembly-version=$(AssemblyVersionFile)
         --output-release-notes=$(ReleaseNotesFile)
+        --release-notes-path=$(AardvarkBuildReleaseNotes)
         --project-path=$(MSBuildProjectFullPath)
-        --repository-root=$(AardvarkBuildRepositoryRoot)
         --verbosity=$(AardvarkBuildVerbosity)
       </Arguments>
     </PropertyGroup>
@@ -65,8 +65,8 @@
         --force=$(AardvarkBuildForceNativeRepack)
         --assembly-name=$(AssemblyName)
         --zip-path=$(NativeZipFile)
+        --native-deps-path=$(AardvarkBuildNativeDependencies)
         --project-path=$(MSBuildProjectFullPath)
-        --repository-root=$(AardvarkBuildRepositoryRoot)
         --verbosity=$(AardvarkBuildVerbosity)
       </Arguments>
     </PropertyGroup>
@@ -84,7 +84,7 @@
   </Target>
 
   <!-- Builds local packages and injects their assemblies -->
-  <Target Name="LocalPackages" AfterTargets="ResolveReferences" DependsOnTargets="ValidateBuildTool">
+  <Target Name="LocalPackages" AfterTargets="ResolveReferences" DependsOnTargets="ValidateBuildTool" Condition="'$(AardvarkBuildDisableLocalSources)' != 'true'">
     <PropertyGroup>
       <Command>local-sources</Command>
       <ArgumentsFile>$(IntermediateOutputPath)$(Command).args</ArgumentsFile>
@@ -101,8 +101,8 @@
         --output-rem-copy-local=$(RemCopyLocalFile)
         --references=$([MSBuild]::Escape('$(ReferencePath)'))
         --copy-local=$([MSBuild]::Escape('$(ReferenceCopyLocalPaths)'))
+        --local-sources-path=$(AardvarkBuildLocalSources)
         --project-path=$(MSBuildProjectFullPath)
-        --repository-root=$(AardvarkBuildRepositoryRoot)
         --verbosity=$(AardvarkBuildVerbosity)
       </Arguments>
     </PropertyGroup>

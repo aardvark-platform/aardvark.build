@@ -6,11 +6,11 @@ open ICSharpCode.SharpZipLib.Zip
 
 module NativeDependenciesCommand =
 
-    let private tryFindLibs (assemblyName: string) (path: string) =
-        try
-            Directory.GetDirectories(path, "*")
+    let private tryFindLibs (assemblyName: string) =
+        Utilities.locate "native dependencies" (fun directory ->
+            Directory.GetDirectories(directory, "*")
             |> Array.tryPick (fun path ->
-                let name = Path.GetFileName(path).ToLower()
+                let name = Path.GetFileName(path).ToLowerInvariant()
 
                 if name = "lib" || name = "libs" then
                     let path = Path.Combine(path, "Native", assemblyName)
@@ -19,10 +19,7 @@ module NativeDependenciesCommand =
                 else
                     None
             )
-
-        with e ->
-            Log.warn $"Error while locating libs folder: {e.Message}"
-            None
+        )
 
     let private zip (level: int) (sourcePath: string) (outputPath: string) =
         try
@@ -59,53 +56,50 @@ module NativeDependenciesCommand =
             Log.warn $"Failed to pack native dependencies: {e.Message}"
 
     let run (args: Args) =
-        let path = Path.GetDirectoryName args.["project-path"]
         let zipPath = args.["zip-path"]
-        let assemblyName = args.["assembly-name"]
 
         let force =
             match args |> Args.tryGet "force" with
             | Some f -> f.ToLowerInvariant() = "true"
             | _ -> false
 
-        let root =
-            match args |> Args.tryGet "repository-root" with
-            | Some r -> Some r
+        let libs =
+            match args |> Args.tryGet "native-deps-path" with
+            | Some p ->
+                if Directory.Exists p then Some p
+                else
+                    Log.warn $"Native dependencies folder does not exist: {p}"
+                    None
+
             | _ ->
-                Log.debug "Locating repository root for path: %s" path
-                Utilities.locateRepositoryRoot path
+                let path = Path.GetDirectoryName args.["project-path"]
+                Log.debug "Locating native dependencies for path: %s" path
+                tryFindLibs args.["assembly-name"] path
 
-        match root with
-        | Some root ->
-            Log.debug "Locating libs folder for path: %s" root
-
-            match tryFindLibs assemblyName root with
-            | Some libs ->
-                let requirePack =
-                    if File.Exists zipPath then
-                        if force then
-                            Log.info $"Forcing repack of native dependencies: {libs} -> {zipPath}"
-                            true
-
-                        elif File.getLastWriteTimeUtcSafe zipPath > Directory.getLastWriteTimeUtcSafe libs then
-                            Log.info $"Native dependencies are up-to-date: {libs} -> {zipPath}"
-                            false
-
-                        else
-                            Log.info $"Native dependencies are out-of-date: {libs} -> {zipPath}"
-                            true
-
-                    else
-                        Log.info $"Packing native dependencies: {libs} -> {zipPath}"
+        match libs with
+        | Some libs ->
+            let requirePack =
+                if File.Exists zipPath then
+                    if force then
+                        Log.info $"Forcing repack of native dependencies: {libs} -> {zipPath}"
                         true
 
-                if requirePack then
-                    zip 9 libs zipPath
+                    elif File.getLastWriteTimeUtcSafe zipPath > Directory.getLastWriteTimeUtcSafe libs then
+                        Log.info $"Native dependencies are up-to-date: {libs} -> {zipPath}"
+                        false
 
-            | _ ->
-                Log.debug $"Did not find a libs folder"
+                    else
+                        Log.info $"Native dependencies are out-of-date: {libs} -> {zipPath}"
+                        true
 
-        | None ->
-            Log.warn "Could not find repository root (please specify AardvarkBuildRepositoryRoot Property)"
+                else
+                    Log.info $"Packing native dependencies: {libs} -> {zipPath}"
+                    true
+
+            if requirePack then
+                zip 9 libs zipPath
+
+        | _ ->
+            Log.debug $"Did not find native dependencies folder"
 
         0
