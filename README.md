@@ -106,9 +106,7 @@ Since building projects can be costly we reuse the packages whenever the source 
 ## Creating Packages with `aardpack`
 The dotnet tool `aardpack` is useful for creating packages with Github CI workflows.
 
-```
-aardpack [--version] [--parse-only] [--configuration <config>] [--release-notes <file>] [--no-build] [--skip-build] [--no-release] [--no-tag] [--dry-run] [--per-project] <file>...
-```
+`aardpack [--version] [--parse-only] [--configuration <config>] [--release-notes <file>] [--output <output directory>] [--no-build] [--skip-build] [--no-release] [--no-tag] [--dry-run] [--per-project] <file>...`
 
 The tool builds the given solution and project files, creates packages, Git tags and Github releases (tags and releases are only created if a Github token is defined).
 
@@ -117,6 +115,7 @@ Available options:
 * `--parse-only`: Parse the release notes, print the latest version and exit. Prints `0.0.0.0` on failure.
 * `--configuration <config>`: The configuration to use for building and packing. Default is Release.
 * `--release-notes <file>`: Path to the release notes file to use for all targets. If omitted, the release notes file is located automatically.
+* `--output <output directory>`: Output directory for *.nupkg files. Defaults to `bin/pack`.
 * `--no-build`: Skip the build and pack steps. The files in arguments will be added to the Github release directly.
 * `--skip-build`: Skip the build step but create packages normally in contrast to `--no-build`.
 * `--no-release`: Do not create a Github release even if a Github token is defined.

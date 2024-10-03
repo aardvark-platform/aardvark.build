@@ -1,3 +1,5 @@
+- [aardpack] Added --output argument
+
 ### 2.0.1
 - Added AardvarkBuildReleaseNotes property
 - Added AardvarkBuildNativeDependencies property

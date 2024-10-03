@@ -147,7 +147,7 @@ module Program =
 
         let workdir = Environment.CurrentDirectory
 
-        let knownArgs = Set.ofList [ "--configuration"; "--release-notes" ]
+        let knownArgs = Set.ofList [ "--configuration"; "--release-notes"; "--output" ]
         let mutable args = Map.empty
         let removeArgs = HashSet<int>()
 
@@ -365,7 +365,11 @@ module Program =
                     else
                         []
 
-                let outputPath = Path.Combine(workdir, "bin", "pack")
+                let outputPath =
+                    match tryGetArg "output" with
+                    | Some dir when not <| File.Exists dir -> dir
+                    | _ ->
+                        Path.Combine(workdir, "bin", "pack")
 
                 if doBuild then
                     let projectUrl =
