@@ -520,7 +520,11 @@ module Program =
 
                                     if doBuild then
                                         for target in targets do
-                                            let packages = Directory.GetFiles(target.GetOutputPath(outputPath), "*.nupkg")
+                                            let outputPath =
+                                                if perProject then target.GetOutputPath outputPath
+                                                else outputPath
+
+                                            let packages = Directory.GetFiles(outputPath, "*.nupkg")
 
                                             if perProject then
                                                 match target.ProjectId with

@@ -1,4 +1,5 @@
 - [aardpack] Added --output argument
+- [aardpack] Fixed issue with project file targets
 
 ### 2.0.1
 - Added AardvarkBuildReleaseNotes property
