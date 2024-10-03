@@ -102,3 +102,24 @@ All packages created this way will override their nuget/paket counterparts durin
 Since building projects can be costly we reuse the packages whenever the source is unchanged. For this caching to work best it is strongly recommended that you use git-repositories as sources. It will work on non-git directories but might trigger rebuilds too often.
 
 *Transitive* `local.sources` overrides across repositories are also supported.
+
+## Creating Packages with `aardpack`
+The dotnet tool `aardpack` is useful for creating packages with Github CI workflows.
+
+```
+aardpack [--version] [--parse-only] [--configuration <config>] [--release-notes <file>] [--no-build] [--skip-build] [--no-release] [--no-tag] [--dry-run] [--per-project] <file>...
+```
+
+The tool builds the given solution and project files, creates packages, Git tags and Github releases (tags and releases are only created if a Github token is defined).
+
+Available options:
+* `--version`: Print the version of `aardpack` and exit.
+* `--parse-only`: Parse the release notes, print the latest version and exit. Prints `0.0.0.0` on failure.
+* `--configuration <config>`: The configuration to use for building and packing. Default is Release.
+* `--release-notes <file>`: Path to the release notes file to use for all targets. If omitted, the release notes file is located automatically.
+* `--no-build`: Skip the build and pack steps. The files in arguments will be added to the Github release directly.
+* `--skip-build`: Skip the build step but create packages normally in contrast to `--no-build`.
+* `--no-release`: Do not create a Github release even if a Github token is defined.
+* `--no-tag`: Do not create a Git tag. Note that this option only has an effect in conjunction with `--no-release` as a tag will be created for each release.
+* `--dry-run`: Only simulate creating tags and releases (works without Github token).
+* `--per-project`: Create a tag and release for each project and package. E.g. Aardvark.Base.csproj results in a tag `aardvark.base/1.2.3.4` and release titled `Aardvark.Base - 1.2.3.4`.
