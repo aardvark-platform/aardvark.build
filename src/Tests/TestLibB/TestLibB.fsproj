@@ -9,6 +9,7 @@
   <ItemGroup>
     <None Include="paket.references" />
     <None Include="paket.template" />
+    <None Include="RELEASE_NOTES.md" />
     <Compile Include="Library.fs" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />

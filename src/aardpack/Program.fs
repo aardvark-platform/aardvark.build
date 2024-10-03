@@ -225,6 +225,13 @@ module Program =
             | Some f -> Some f
             | _ -> None
 
+        let outputPath =
+            match tryGetArg "output" with
+            | Some dir when not <| File.Exists dir ->
+                Path.GetFullPath dir
+            | _ ->
+                Path.Combine(workdir, "bin", "pack")
+
         if showVersion then
             let asm = System.Reflection.Assembly.GetExecutingAssembly()
 
@@ -295,7 +302,8 @@ module Program =
                 | None ->
                     Log.line "not a github repository"
 
-                Log.start "Paket:Pack"
+                if doBuild then
+                    Log.start "Paket:Pack"
 
                 let tryGetPackTarget (dependencies: Paket.Dependencies) (template: Paket.TemplateFile option) (path: TargetPath) =
                     let dir = path.GetDirectoryName()
@@ -365,12 +373,6 @@ module Program =
                     else
                         []
 
-                let outputPath =
-                    match tryGetArg "output" with
-                    | Some dir when not <| File.Exists dir -> dir
-                    | _ ->
-                        Path.Combine(workdir, "bin", "pack")
-
                 if doBuild then
                     let projectUrl =
                         githubInfo |> Option.map (fun (user, repo) ->
@@ -408,7 +410,7 @@ module Program =
                                     try File.Delete path
                                     with _ -> ()
 
-                Log.stop()
+                    Log.stop()
 
                 let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
                 if dryRun || not (isNull token) then
@@ -437,15 +439,22 @@ module Program =
                             with e ->
                                 Log.warn "cannot push tag: %s" e.Message
 
-                        for target in targets do
-                            if perProject then
-                                match target.ProjectId with
-                                | Some name ->
-                                    createAndPushTag $"{name.ToLowerInvariant()}/{target.Version}"
-                                | _ ->
-                                    Log.error "cannot tag for '%s', project id not found but --per-project was specified" (Path.Relative(target.Path, workdir))
-                            else
-                                createAndPushTag target.Version
+                        if doBuild then
+                            for target in targets do
+                                if perProject then
+                                    match target.ProjectId with
+                                    | Some name ->
+                                        createAndPushTag $"{name.ToLowerInvariant()}/{target.Version}"
+                                    | _ ->
+                                        Log.error "cannot tag for '%s', project id not found but --per-project was specified" (Path.Relative(target.Path, workdir))
+                                else
+                                    createAndPushTag target.Version
+                        else
+                            match tryFindReleaseNotes releaseNotesFile false workdir with
+                            | Some n ->
+                                createAndPushTag n.NugetVersion
+                            | _ ->
+                                Log.warn "cannot create tag, no version"
 
                         Log.stop()
 
@@ -540,7 +549,7 @@ module Program =
                                     else
                                         match tryFindReleaseNotes releaseNotesFile false workdir with
                                         | Some n ->
-                                            let packages = List.toArray files
+                                            let packages = files |> List.filter File.Exists |> List.toArray
                                             createAndUploadRelease n.Notes n.SemVer.PreRelease.IsSome n.NugetVersion n.NugetVersion packages
                                         | _ ->
                                             Log.warn "cannot create release, no version"

@@ -69,8 +69,9 @@ module BuildTests =
                 zip.GetEntry("lib/net48/TestApp.exe") |> should not' (equal null)
 
             let nuspec = zip.ReadEntry("TestApp.nuspec")
-            nuspec.Contains("<releaseNotes>- Test") |> should be True
-            nuspec.Contains("- Include ; some ; semicolons") |> should be True
+            nuspec |> should contain "<version>9.9.9</version>"
+            nuspec |> should contain "<releaseNotes>- Test"
+            nuspec |> should contain "- Include ; some ; semicolons"
 
         finally
             if Directory.Exists "pack" then Directory.Delete("pack", true)

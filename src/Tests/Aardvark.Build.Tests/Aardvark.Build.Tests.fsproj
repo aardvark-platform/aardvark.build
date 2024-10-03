@@ -10,8 +10,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Utilities.fs" />
-    <Compile Include="Tests.fs" />
+    <Compile Include="AardpackTests.fs" />
+    <Compile Include="BuildTests.fs" />
     <None Include="paket.references" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\aardpack\aardpack.fsproj" Condition="'$(TargetFramework)' == 'net8.0'" />
   </ItemGroup>
   <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>
