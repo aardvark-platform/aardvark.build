@@ -84,10 +84,12 @@ module Utilities =
 
         tryFindFile "dependencies file" check Paket.Dependencies false
 
-    let tryFindReleaseNotes : bool -> string -> ReleaseNotes.ReleaseNotes option =
+    let tryFindReleaseNotes (releaseNotesFile: string option) : bool -> string -> ReleaseNotes.ReleaseNotes option =
         let check (current: string) =
-            Directory.GetFiles(current, "*")
-            |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
+            if releaseNotesFile.IsSome then releaseNotesFile
+            else
+                Directory.GetFiles(current, "*")
+                |> Array.tryFind (fun p -> Path.GetFileNameWithoutExtension(p).ToLower().Trim().Replace("_", "") = "releasenotes")
 
         tryFindFile "release notes" check (fun file ->
             let data =
@@ -111,10 +113,12 @@ module Program =
     let httpsRx = Regex @"http(s)?://github.com/([^/]+)/([^/]+)$"
 
     [<EntryPoint>]
-    let main args =
+    let main argv =
         let sw = System.Diagnostics.Stopwatch.StartNew()
+        let argv = argv |> Array.toList |> List.filter (String.isNullOrWhiteSpace >> not)
+
         do
-            let ctx = Context.FakeExecutionContext.Create false "build.fsx" (Array.toList args)
+            let ctx = Context.FakeExecutionContext.Create false "build.fsx" argv
             Context.setExecutionContext (Context.RuntimeContext.Fake ctx)
 
             CoreTracing.setTraceListenersPrivate [
@@ -141,57 +145,85 @@ module Program =
                 }
             ]
 
-        let workdir =
-            args
-            |> Array.tryFind (fun p -> not (p.StartsWith "-") && Directory.Exists p)
-            |> Option.defaultValue Environment.CurrentDirectory
+        let workdir = Environment.CurrentDirectory
+
+        let knownArgs = Set.ofList [ "--configuration"; "--release-notes" ]
+        let mutable args = Map.empty
+        let removeArgs = HashSet<int>()
+
+        for i = 0 to argv.Length - 1 do
+            if knownArgs |> Set.contains argv.[i] then
+                removeArgs.Add(i) |> ignore
+
+                if i + 1 < argv.Length && not <| argv.[i + 1].StartsWith('-') then
+                    args <- args |> Map.add argv[i] argv[i + 1]
+                    removeArgs.Add(i + 1) |> ignore
+
+        let tryGetArg (name: string) =
+            args |> Map.tryFind $"--{name}"
+
+        let argv =
+            argv |> List.mapi (fun i x ->
+                if removeArgs.Contains i then None
+                else Some x
+            )
+            |> List.choose id
 
         let files =
-            args
-            |> Array.filter (fun p -> not (p.StartsWith "-") && File.Exists p)
-            |> Array.toList
+            argv |> List.filter (fun p -> not (p.StartsWith "-") && File.Exists p)
 
         let files =
             match files with
             | [] -> [workdir]
             | f -> f
 
-        let hasArgument (name: string) =
-            args |> Array.exists ((=) $"--{name}")
+        let hasFlag (name: string) =
+            argv |> List.exists ((=) $"--{name}")
 
         // If --no-build is specified, build & pack steps will be skipped and the files in arguments will be added to the release directly.
         let doBuild =
-            not <| (hasArgument "nobuild" || hasArgument "no-build")
+            not <| (hasFlag "nobuild" || hasFlag "no-build")
 
         // If true, skips the build step but packages normally in contrast to --no-build
         let skipBuild =
-            hasArgument "skip-build" || hasArgument "skipbuild"
+            hasFlag "skip-build" || hasFlag "skipbuild"
 
         // Note: Github release will create a tag regardless.
         let createTag =
-            not <| (hasArgument "notag" || hasArgument "no-tag")
+            not <| (hasFlag "notag" || hasFlag "no-tag")
 
         // Do not actually create tags and push packages
         let dryRun =
-            hasArgument "dry-run" || hasArgument "dryrun"
+            hasFlag "dry-run" || hasFlag "dryrun"
 
         // Create a tag and release for each project file specified as argument
         // E.g. Aardvark.Base.csproj results in a tag aardvark.base/1.2.3.4 and release titled Aardvark.Base - 1.2.3.4
         let perProject =
-            doBuild && (hasArgument "per-project" || hasArgument "perproject")
+            doBuild && (hasFlag "per-project" || hasFlag "perproject")
 
         let createRelease =
-            not <| (hasArgument "norelease" || hasArgument "no-release")
+            not <| (hasFlag "norelease" || hasFlag "no-release")
 
         let parseOnly =
-            hasArgument "parseonly" || hasArgument "parse-only"
+            hasFlag "parseonly" || hasFlag "parse-only"
 
         let showVersion =
-            hasArgument "version"
+            hasFlag "version"
 
         let config =
-            if hasArgument "debug" then DotNet.BuildConfiguration.Debug
-            else DotNet.BuildConfiguration.Release
+            match tryGetArg "configuration" with
+            | Some cfg ->
+                match cfg.ToLowerInvariant() with
+                | "debug" -> DotNet.BuildConfiguration.Debug
+                | "release" -> DotNet.BuildConfiguration.Release
+                | _ -> DotNet.BuildConfiguration.Custom cfg
+            | _ ->
+                DotNet.BuildConfiguration.Release
+
+        let releaseNotesFile =
+            match tryGetArg "release-notes" with
+            | Some f -> Some f
+            | _ -> None
 
         if showVersion then
             let asm = System.Reflection.Assembly.GetExecutingAssembly()
@@ -211,7 +243,7 @@ module Program =
 
         elif parseOnly then
             let version =
-                match tryFindReleaseNotes true workdir with
+                match tryFindReleaseNotes releaseNotesFile true workdir with
                 | Some notes -> notes.NugetVersion
                 | _ -> "0.0.0.0"
 
@@ -268,7 +300,7 @@ module Program =
                 let tryGetPackTarget (dependencies: Paket.Dependencies) (template: Paket.TemplateFile option) (path: TargetPath) =
                     let dir = path.GetDirectoryName()
 
-                    match tryFindReleaseNotes false dir with
+                    match tryFindReleaseNotes releaseNotesFile false dir with
                     | Some notes ->
                         let templateFile =
                             template |> Option.map (fun t -> t.FileName)
@@ -498,7 +530,7 @@ module Program =
                                             else
                                                 createAndUploadRelease target.ReleaseNotes target.Prerelease target.Version target.Version packages
                                     else
-                                        match tryFindReleaseNotes false workdir with
+                                        match tryFindReleaseNotes releaseNotesFile false workdir with
                                         | Some n ->
                                             let packages = List.toArray files
                                             createAndUploadRelease n.Notes n.SemVer.PreRelease.IsSome n.NugetVersion n.NugetVersion packages

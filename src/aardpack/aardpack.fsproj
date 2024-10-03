@@ -7,7 +7,7 @@
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <Authors>Aardvark Platform Team</Authors>
     <Description>.NET tool for packing Aardvark Platform projects.</Description>
-    <OutputPath>..\..\bin\$(Configuration)</OutputPath>
+    <OutputPath>..\..\bin\$(Configuration)\aardpack</OutputPath>
     <AardvarkBuildToolAssembly>..\..\bin\Debug\standalone-tool\Aardvark.Build.dll</AardvarkBuildToolAssembly>
   </PropertyGroup>
   <ItemGroup>
