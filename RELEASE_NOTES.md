@@ -1,3 +1,12 @@
+### 2.0.1
+- Added AardvarkBuildReleaseNotes property
+- Added AardvarkBuildNativeDependencies property
+- Added AardvarkBuildLocalSources property
+- Added AardvarkBuildDisableLocalSources property
+- Removed AardvarkBuildRepositoryRoot property
+- [aardpack] Added --configuration argument and remvoe --debug switch
+- [aardpack] Added --release-notes argument
+
 ### 2.0.0
 - Reworked as standalone tool
 - Added support for preliminary release notes
