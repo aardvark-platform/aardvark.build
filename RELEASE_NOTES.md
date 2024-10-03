@@ -1,3 +1,4 @@
+### 2.0.2
 - [aardpack] Added --output argument
 - [aardpack] Fixed issue with project file targets
 
