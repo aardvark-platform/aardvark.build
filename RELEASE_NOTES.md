@@ -1,3 +1,6 @@
+### 2.0.3
+- Update FAKE packages (fixes missing method exception due to Octokit breaking change)
+
 ### 2.0.2
 - [aardpack] Added --output argument
 - [aardpack] Fixed issue with project file targets
