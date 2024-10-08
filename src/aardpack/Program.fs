@@ -516,6 +516,7 @@ module Program =
                                                     Draft = true
                                                     Prerelease = prerelease
                                                     Body = String.concat "\r\n" releaseNotes
+                                                    GenerateReleaseNotes = false
                                                 }
                                             )
                                             |> GitHub.uploadFiles packages
