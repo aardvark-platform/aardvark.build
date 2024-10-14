@@ -163,6 +163,7 @@ module LocalSourcesCommand =
                     for d in dlls do
                         w.WriteLine(sprintf "%s;%s;%s" packageId framework d)
 
+                w.Flush()
                 file.Seek(0L, SeekOrigin.Begin) |> ignore
 
             with e ->

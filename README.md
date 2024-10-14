@@ -86,13 +86,13 @@ For adding an external repository you need to create a file called `local.source
 
 ```
 /home/dev/myrepo
-    dotnet build
-    dotnet pack -o {OUTPUT}
+    dotnet build -c Debug
+    dotnet paket pack --build-config Debug --version {VERSION} {OUTPUT}
 
 ../otherrepo
     dotnet tool restore
-    dotnet build MyProj/MyProj.fsproj
-    dotnet paket pack {OUTPUT}
+    dotnet build -c Debug MyProj/MyProj.fsproj
+    dotnet paket pack --build-config Debug --version {VERSION} {OUTPUT}
 ```
 
 Non-indented strings are interpreted as paths to the repository (absolute or relative to the `.sources` file) and all indented lines following are commands that create packages in the spliced folder-path `{OUTPUT}` provided by Aardvark.Build.

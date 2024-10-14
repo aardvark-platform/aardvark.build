@@ -1,3 +1,5 @@
+- Fixed local sources cache
+
 ### 2.0.3
 - Update FAKE packages (fixes missing method exception due to Octokit breaking change)
 
