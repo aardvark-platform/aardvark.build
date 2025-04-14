@@ -13,3 +13,5 @@ obj/
 /.version
 src/Tests/TestApp/build/
 src/Tests/TestApp/standalone-tool
+**.idea
+**.DotSettings.user
