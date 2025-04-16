@@ -73,6 +73,9 @@ module AardpackTests =
             let nupkg = Path.Combine(outputDir, "TestLibA.1.2.3.nupkg")
             Assert.That(nupkg, Does.Exist)
 
+            let files = Directory.GetFiles(outputDir)
+            Assert.That(files, Has.Length.EqualTo(1))
+
             use zip = new ZipFile(nupkg)
             let nuspec = zip.ReadEntry("TestLibA.nuspec")
             nuspec |> should contain "<version>1.2.3</version>"
@@ -95,13 +98,20 @@ module AardpackTests =
             let nupkgA = getNupkgPath "TestLibA" "1.2.3"
             Assert.That(nupkgA, Does.Exist)
 
+            let filesA = Directory.GetFiles(Path.GetDirectoryName nupkgA)
+            Assert.That(filesA, Has.Length.EqualTo(1))
+
             use zip = new ZipFile(nupkgA)
             let nuspec = zip.ReadEntry("TestLibA.nuspec")
             nuspec |> should contain "<version>1.2.3</version>"
             nuspec |> should contain "<releaseNotes>- TestLibA changes"
+            nuspec |> should contain "<dependency id=\"TestLibB\" version=\"[3.2.1,3.3.0)\" />"
 
             let nupkgB = getNupkgPath "TestLibB" "3.2.1"
             Assert.That(nupkgA, Does.Exist)
+
+            let filesB = Directory.GetFiles(Path.GetDirectoryName nupkgB)
+            Assert.That(filesB, Has.Length.EqualTo(1))
 
             use zip = new ZipFile(nupkgB)
             let nuspec = zip.ReadEntry("TestLibB.nuspec")

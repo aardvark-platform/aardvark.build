@@ -23,14 +23,26 @@ type TargetPath =
         | File f -> Path.GetDirectoryName f
         | Directory d -> d
 
+type Dependencies =
+    { Paket     : Paket.Dependencies
+      Templates : Map<string, Paket.TemplateFile> }
+
+    member x.TryGetTemplateId(directory: string) =
+        x.Templates |> Map.tryFindKey (fun _ template ->
+            Path.GetDirectoryName template.FileName = Path.GetFullPath directory
+        )
+
+    member x.GetTemplateId(directory: string) =
+        x.TryGetTemplateId(directory) |> Option.get
+
 type PackTarget =
-    { Path         : string
-      Version      : string
-      Prerelease   : bool
-      ReleaseNotes : string list
-      TemplateFile : string option
-      ProjectId    : string option
-      Dependencies : Paket.Dependencies }
+    { Path              : string
+      Version           : string
+      Prerelease        : bool
+      ReleaseNotes      : string list
+      ProjectId         : string option
+      ProjectReferences : Map<string, string>
+      Dependencies      : Dependencies }
 
     member x.GetOutputPath(outputPath: string) =
         Path.Combine(outputPath, x.ProjectId |> Option.defaultValue "")
@@ -72,17 +84,22 @@ module Utilities =
                     Log.warn "could not find %s for '%s'" kind directory
                 None
 
-    let tryGetTemplateId (template: Paket.TemplateFile) =
+    let getTemplateId (template: Paket.TemplateFile) =
         match template.Contents with
-        | Paket.CompleteInfo (i, _) -> Some i.Id
-        | Paket.ProjectInfo (i, _) -> i.Id
+        | Paket.CompleteInfo (i, _) -> i.Id
+        | Paket.ProjectInfo (i, _) -> i.Id |> Option.defaultWith (fun _ -> Path.GetFileNameWithoutExtension template.FileName)
 
-    let tryFindDependencies : string -> Paket.Dependencies option =
+    let tryFindDependencies : string -> Dependencies option =
         let check (current: string) =
             let file = Path.Combine(current, "paket.dependencies")
             if File.Exists file then Some file else None
 
-        tryFindFile "dependencies file" check Paket.Dependencies false
+        let parse (path: string) =
+            let deps = Paket.Dependencies path
+            let templates = deps.ListTemplateFiles() |> List.map (fun t -> getTemplateId t, t)
+            { Paket = deps; Templates = Map.ofList templates }
+
+        tryFindFile "dependencies file" check parse false
 
     let tryFindReleaseNotes (releaseNotesFile: string option) : bool -> string -> ReleaseNotes.ReleaseNotes option =
         let check (current: string) =
@@ -106,6 +123,47 @@ module Utilities =
 
             ReleaseNotes.parse data
         )
+
+    let private templateRx = Regex("^(?<projectFile>.+)\.paket\.template$", RegexOptions.Compiled)
+
+    let tryGetProjectFile (template: Paket.TemplateFile) =
+        let dir = Path.GetDirectoryName template.FileName
+        let file = Path.GetFileName template.FileName
+
+        let projectFile =
+            let m = templateRx.Match file
+            if m.Success then m.Groups.["projectFile"].Value
+            else null
+
+        if File.Exists projectFile then
+            Some projectFile
+        else
+            Directory.GetFiles(dir)
+            |> Array.tryFind (fun path ->
+                let ext = Path.GetExtension path
+                ext = ".csproj" || ext = ".fsproj"
+            )
+        |> Option.bind Paket.ProjectFile.tryLoad
+
+    let getReferencedProjects (releaseNotesFile: string option) (dependencies: Dependencies) (project: Paket.ProjectFile) =
+        let cache = Paket.PackProcessCache.empty
+
+        project.GetAllInterProjectDependenciesWithProjectTemplates cache
+        |> List.choose (fun p ->
+            match p.FindTemplatesFile() with
+            | Some templateFile ->
+                let directory = Path.GetDirectoryName templateFile
+
+                match tryFindReleaseNotes releaseNotesFile false directory with
+                | Some notes ->
+                    let id = dependencies.GetTemplateId(directory)
+                    Some (id, notes.NugetVersion)
+                | _ ->
+                    None
+            | _ ->
+                None
+        )
+        |> Map.ofList
 
 module Program =
 
@@ -302,31 +360,28 @@ module Program =
                 | None ->
                     Log.line "not a github repository"
 
-                if doBuild then
-                    Log.start "Paket:Pack"
-
-                let tryGetPackTarget (dependencies: Paket.Dependencies) (template: Paket.TemplateFile option) (path: TargetPath) =
+                let tryGetPackTarget (dependencies: Dependencies) (projectId: string option) (path: TargetPath) =
                     let dir = path.GetDirectoryName()
 
                     match tryFindReleaseNotes releaseNotesFile false dir with
                     | Some notes ->
-                        let templateFile =
-                            template |> Option.map (fun t -> t.FileName)
-
-                        let projectId =
-                            template |> Option.map (fun t ->
-                                let fileName = Path.GetFileNameWithoutExtension t.FileName
-                                tryGetTemplateId t |> Option.defaultValue fileName
-                            )
+                        // If we pack a specific template we have to manually find all referenced
+                        // projects and their corresponding version. Otherwise, they are treated
+                        // as non-paket dependencies and packed into the package directly.
+                        let projectReferences =
+                            projectId
+                            |> Option.bind (fun id -> tryGetProjectFile dependencies.Templates.[id])
+                            |> Option.map (getReferencedProjects releaseNotesFile dependencies)
+                            |> Option.defaultValue Map.empty
 
                         Some {
-                            Path         = path.Path
-                            Version      = notes.NugetVersion
-                            Prerelease   = notes.SemVer.PreRelease.IsSome
-                            ReleaseNotes = notes.Notes
-                            TemplateFile = templateFile
-                            ProjectId    = projectId
-                            Dependencies = dependencies
+                            Path              = path.Path
+                            Version           = notes.NugetVersion
+                            Prerelease        = notes.SemVer.PreRelease.IsSome
+                            ReleaseNotes      = notes.Notes
+                            ProjectId         = projectId
+                            ProjectReferences = projectReferences
+                            Dependencies      = dependencies
                         }
 
                     | _ -> None
@@ -341,76 +396,92 @@ module Program =
 
                     match tryFindDependencies dir with
                     | Some deps ->
-                        let templateFiles = deps.ListTemplateFiles()
+                        let projectId = deps.TryGetTemplateId dir
 
-                        let template =
-                            templateFiles |> List.tryFind (fun t ->
-                                let templatePath = Path.GetFullPath t.FileName
-                                Path.GetDirectoryName templatePath = dir
-                            )
-
-                        if perProject && template.IsNone then
-                            templateFiles |> List.choose (fun t -> t.FileName |> Path.GetFullPath |> File |> tryGetPackTarget deps (Some t))
+                        if perProject && projectId.IsNone then
+                            deps.Templates |> Map.toList |> List.choose (fun (id, t) -> t.FileName |> Path.GetFullPath |> File |> tryGetPackTarget deps (Some id))
                         else
-                            tryGetPackTarget deps template path |> Option.toList
+                            tryGetPackTarget deps projectId path |> Option.toList
 
                     | _ -> []
 
                 let targets =
                     if doBuild then
-                        let result =
-                            files
-                            |> List.collect tryGetPackTargets
-                            |> List.distinctBy (fun target ->
-                                target.Dependencies.RootPath, target.TemplateFile
+                        Log.start "Paket:Pack"
+
+                        try
+                            let projectUrl =
+                                githubInfo |> Option.map (fun (user, repo) ->
+                                    sprintf "https://github.com/%s/%s/" user repo
+                                )
+
+                            let result =
+                                files
+                                |> List.collect tryGetPackTargets
+                                |> List.distinctBy (fun target ->
+                                    target.Dependencies.Paket.RootPath, target.ProjectId
+                                )
+
+                            Log.start "found %d pack targets" result.Length
+                            for t in result do Log.line "%s" t.Path
+                            Log.stop()
+
+                            result |> List.map (fun target ->
+                                let outputPath =
+                                    if perProject then target.GetOutputPath outputPath
+                                    else outputPath
+
+                                let excludedIds =
+                                    if Map.isEmpty target.ProjectReferences then
+                                        Seq.empty
+                                    else
+                                        target.Dependencies.Templates.Keys
+                                        |> Seq.filter (target.ProjectReferences.ContainsKey >> not)
+
+                                let interprojectConstraint =
+                                    if perProject then
+                                        Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.KeepMinor
+                                    else
+                                        Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix
+
+                                Path.tempDir outputPath (fun tempOutputPath ->
+                                    target.Dependencies.Paket.Pack(
+                                        tempOutputPath,
+                                        version                          = target.Version,
+                                        releaseNotes                     = String.concat "\r\n" target.ReleaseNotes,
+                                        buildConfig                      = string config,
+                                        interprojectReferencesConstraint = Some interprojectConstraint,
+                                        excludedTemplates                = List.ofSeq excludedIds,
+                                        specificVersions                 = Map.toList target.ProjectReferences,
+                                        ?projectUrl                      = projectUrl
+                                    )
+
+                                    let artifacts =
+                                        match target.ProjectId with
+                                        | Some id ->
+                                            [| Path.Combine(tempOutputPath, $"{id}.{target.Version}.nupkg") |]
+                                        | _ ->
+                                            Directory.GetFiles(tempOutputPath, "*.nupkg")
+                                        |> Array.choose (fun tempPath ->
+                                            if File.Exists tempPath then
+                                                let fileName = Path.GetFileName tempPath
+                                                let path = Path.Combine(outputPath, fileName)
+                                                File.Copy(tempPath, path, true)
+
+                                                Log.line $"packed {fileName}"
+                                                Some path
+                                            else
+                                                None
+                                        )
+
+                                    target, artifacts
+                                )
                             )
 
-                        Log.start "found %d pack targets" result.Length
-                        for t in result do Log.line "%s" t.Path
-                        Log.stop()
-
-                        result
+                        finally
+                            Log.stop()
                     else
                         []
-
-                if doBuild then
-                    let projectUrl =
-                        githubInfo |> Option.map (fun (user, repo) ->
-                            sprintf "https://github.com/%s/%s/" user repo
-                        )
-
-                    for target in targets do
-                        let outputPath =
-                            if perProject then target.GetOutputPath outputPath
-                            else outputPath
-
-                        target.Dependencies.Pack(
-                            outputPath,
-                            version = target.Version,
-                            releaseNotes = String.concat "\r\n" target.ReleaseNotes,
-                            buildConfig = string config,
-                            interprojectReferencesConstraint = Some Paket.InterprojectReferencesConstraint.InterprojectReferencesConstraint.Fix,
-                            ?projectUrl = projectUrl,
-                            ?templateFile = target.TemplateFile
-                        )
-
-                        let packages =
-                            Directory.GetFiles(outputPath, "*.nupkg")
-
-                        let packageNameRx = Regex @"^(.*?)\.([0-9]+\.[0-9]+.*)\.nupkg$"
-
-                        for path in packages do
-                            let m = packageNameRx.Match (Path.GetFileName path)
-                            if m.Success then
-                                let id = m.Groups.[1].Value.Trim()
-                                let v = m.Groups.[2].Value.Trim()
-                                if v = target.Version then
-                                    Log.line "packed %s (%s)" id v
-                                else
-                                    try File.Delete path
-                                    with _ -> ()
-
-                    Log.stop()
 
                 let token = Environment.GetEnvironmentVariable "GITHUB_TOKEN"
                 if dryRun || not (isNull token) then
@@ -440,7 +511,7 @@ module Program =
                                 Log.warn "cannot push tag: %s" e.Message
 
                         if doBuild then
-                            for target in targets do
+                            for target, _ in targets do
                                 if perProject then
                                     match target.ProjectId with
                                     | Some name ->
@@ -529,24 +600,18 @@ module Program =
                                             ()
 
                                     if doBuild then
-                                        for target in targets do
-                                            let outputPath =
-                                                if perProject then target.GetOutputPath outputPath
-                                                else outputPath
-
-                                            let packages = Directory.GetFiles(outputPath, "*.nupkg")
-
+                                        for target, artifacts in targets do
                                             if perProject then
                                                 match target.ProjectId with
                                                 | Some id ->
                                                     let tag = $"{id.ToLowerInvariant()}/{target.Version}"
                                                     let rel = $"{id} - {target.Version}"
-                                                    createAndUploadRelease target.ReleaseNotes target.Prerelease tag rel packages
+                                                    createAndUploadRelease target.ReleaseNotes target.Prerelease tag rel artifacts
                                                 | _ ->
                                                     let path = Path.Relative(target.Path, workdir)
                                                     Log.error "cannot create release for '%s', project id not found but --per-project was specified" path
                                             else
-                                                createAndUploadRelease target.ReleaseNotes target.Prerelease target.Version target.Version packages
+                                                createAndUploadRelease target.ReleaseNotes target.Prerelease target.Version target.Version artifacts
                                     else
                                         match tryFindReleaseNotes releaseNotesFile false workdir with
                                         | Some n ->

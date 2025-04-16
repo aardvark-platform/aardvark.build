@@ -16,3 +16,17 @@ module PathExtensions =
             else
                 path
 
+    module Path =
+        let rec private getRandomName (path: string) =
+            let name = Path.Combine(path, Path.GetRandomFileName())
+            if File.Exists name || Directory.Exists name then getRandomName path
+            else name
+
+        let rec tempDir (path: string) (action: string -> 'T) =
+            let name = getRandomName path
+            Directory.CreateDirectory name |> ignore
+
+            try
+                action name
+            finally
+                if Directory.Exists name then Directory.Delete(name, true)
