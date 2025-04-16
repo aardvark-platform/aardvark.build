@@ -1,4 +1,7 @@
+### 2.0.4
 - Fixed local sources cache
+- [aardpack] Updated to Paket 9.0.2
+- [aardpack] Fixed inter-project dependencies when using --per-project
 
 ### 2.0.3
 - Update FAKE packages (fixes missing method exception due to Octokit breaking change)
