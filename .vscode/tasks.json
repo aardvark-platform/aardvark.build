@@ -1,0 +1,93 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "${workspaceFolder}/build.sh",
+            "windows": {
+                "command": "${workspaceFolder}/build.cmd"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "test",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "test",
+                "src/Aardvark.Build.sln",
+                "-c",
+                "Release",
+                "--no-build",
+                "--nologo",
+                "--logger:console;verbosity=normal"
+            ],
+            "group": "test",
+            "dependsOn": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "pack",
+            "type": "shell",
+            "command": "${workspaceFolder}/pack.sh",
+            "windows": {
+                "command": "${workspaceFolder}/pack.cmd"
+            },
+            "group": "build",
+            "dependsOn": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "restore-tools",
+            "type": "shell",
+            "command": "dotnet",
+            "args": ["tool", "restore"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "paket-restore",
+            "type": "shell",
+            "command": "dotnet",
+            "args": ["paket", "restore"],
+            "group": "build",
+            "dependsOn": "restore-tools",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            }
+        }
+    ]
+}

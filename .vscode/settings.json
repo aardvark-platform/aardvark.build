@@ -1,0 +1,29 @@
+{
+    "FSharp.inlayHints.enabled": false,
+    "FSharp.inlayHints.typeAnnotations": false,
+    "FSharp.inlayHints.parameterNames": false,
+    "FSharp.enableTreeView": true,
+    "FSharp.showExplorerOnStartup": true,
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/.paket": true,
+        "**/packages": true,
+        "**/paket-files": true
+    },
+    "search.exclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/.paket": true,
+        "**/packages": true,
+        "**/paket-files": true,
+        "**/paket.lock": true
+    },
+    "files.watcherExclude": {
+        "**/bin/**": true,
+        "**/obj/**": true,
+        "**/.paket/**": true,
+        "**/packages/**": true,
+        "**/paket-files/**": true
+    }
+}
