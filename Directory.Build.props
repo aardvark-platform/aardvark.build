@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <!-- Common F# settings -->
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <WarnOn>3389;3390;3395</WarnOn>
+    
+    <!-- Common metadata -->
+    <Authors>Aardvark Platform Team</Authors>
+    <Company>Aardvark Platform Team</Company>
+    <Copyright>Copyright © Aardvark Platform Team</Copyright>
+    
+    <!-- Output settings -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin</BaseOutputPath>
+    
+    <!-- Language and framework settings -->
+    <LangVersion>latest</LangVersion>
+    
+    <!-- Source control and package settings -->
+    <RepositoryUrl>https://github.com/aardvark-platform/aardvark.build</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/aardvark-platform/aardvark.build</PackageProjectUrl>
+  </PropertyGroup>
+</Project>

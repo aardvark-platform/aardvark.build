@@ -5,3 +5,4 @@ NUnit3TestAdapter
 Microsoft.NET.Test.Sdk
 Fake.DotNet.Cli
 SharpZipLib
+Mono.Posix.NETStandard
