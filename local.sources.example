@@ -1,0 +1,35 @@
+# local.sources.example
+# 
+# This file shows how to configure local package overrides for development.
+# Copy this file to 'local.sources' and modify the paths and commands as needed.
+# 
+# Format:
+# - Non-indented lines are repository paths (absolute or relative to this file)
+# - Indented lines are shell commands to build and pack the repository
+# - Use {VERSION} placeholder for version and {OUTPUT} for output directory
+#
+# Examples:
+
+# Local development of a related Aardvark project
+/home/dev/aardvark-base
+    dotnet tool restore
+    dotnet paket restore  
+    dotnet build -c Debug src/Aardvark.Base/Aardvark.Base.fsproj
+    dotnet paket pack --build-config Debug --version {VERSION} {OUTPUT}
+
+# Another project using relative path
+../aardvark-rendering
+    dotnet build -c Debug
+    dotnet paket pack --build-config Debug --version {VERSION} {OUTPUT}
+
+# Project with specific build requirements
+/path/to/custom-project
+    ./build.sh
+    dotnet pack src/MyProject/MyProject.csproj -c Debug --version-suffix {VERSION} -o {OUTPUT}
+
+# Notes:
+# - All packages created this way will override their NuGet/Paket counterparts
+# - Caching works best with git repositories
+# - Transitive local.sources overrides are supported across repositories
+# - Use Debug configuration for faster local development builds
+# - The {OUTPUT} directory is managed by Aardvark.Build
