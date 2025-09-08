@@ -9,9 +9,42 @@ obj/
 /.ionide
 **/.vs
 **/bin
+**/obj
 /getversion/bin/**
 /.version
 src/Tests/TestApp/build/
 src/Tests/TestApp/standalone-tool
+
+# IDE files
 **.idea
 **.DotSettings.user
+*.swp
+*.swo
+*~
+
+# Local development files
+local.sources
+*.orig
+*.log
+*.tmp
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Visual Studio Code
+.vscode/launch.json
+.vscode/ipch/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Test results
+TestResults/
+**/TestResults/

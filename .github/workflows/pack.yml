@@ -13,6 +13,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Cache .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Install Dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -28,6 +35,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Cache .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~\.nuget\packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Install Dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -44,6 +58,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Cache .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Install Dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -63,6 +84,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Cache .NET packages
+        uses: actions/cache@v4
+        with:
+          path: ~\.nuget\packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
       - name: Install Dotnet
         uses: actions/setup-dotnet@v4
         with:
