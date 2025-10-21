@@ -53,6 +53,10 @@
       <PackageVersion Condition="'$(NugetVersion)' != ''">$(NugetVersion)</PackageVersion>
       <PackageReleaseNotes>$(ReleaseNotes)</PackageReleaseNotes>
     </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyMetadata Include="BuildDate" Value="$([System.DateTime]::UtcNow.ToString('O'))" />
+    </ItemGroup>
   </Target>
 
   <!-- Packs native dependencies into a ZIP archive and adds it as embedded resource -->

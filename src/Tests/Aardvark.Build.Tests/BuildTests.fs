@@ -1,6 +1,7 @@
 ﻿namespace Aardvark.Build.Tests
 
 open System
+open System.Globalization
 open System.IO
 open System.Reflection
 open System.Runtime.InteropServices
@@ -42,6 +43,17 @@ module BuildTests =
             | _ -> None
         )
         |> should startWith "9.9.9"
+
+    [<Test>]
+    let ``[Build] Build date``() =
+        testApp.GetName().Version |> should equal (Version(9, 9, 0, 0))
+
+        testApp.GetCustomAttributes(true)
+        |> Array.pick (function
+            | :? AssemblyMetadataAttribute as att when att.Key = "BuildDate" -> Some <| DateTime.Parse(att.Value, null, DateTimeStyles.RoundtripKind)
+            | _ -> None
+        )
+        |> should lessThanOrEqualTo DateTime.UtcNow
 
     [<Test>]
     let ``[Build] Native dependencies``() =
