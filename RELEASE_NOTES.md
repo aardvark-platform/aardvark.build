@@ -1,3 +1,6 @@
+### 2.0.5
+- Build date is now written to the assembly as metadata attribute with name `BuildDate`
+
 ### 2.0.4
 - Fixed local sources cache
 - [aardpack] Updated to Paket 9.0.2
