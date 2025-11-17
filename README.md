@@ -1,8 +1,8 @@
 # Aardvark.Build
 
-![Publish](https://github.com/aardvark-platform/aardvark.build/workflows/Publish/badge.svg)
-[![NuGet](https://badgen.net/nuget/v/Aardvark.Build)](https://www.nuget.org/packages/Aardvark.Build/)
-[![NuGet](https://badgen.net/nuget/dt/Aardvark.Build)](https://www.nuget.org/packages/Aardvark.Build/)
+[![Publish](https://github.com/aardvark-platform/aardvark.build/workflows/Publish/badge.svg)](https://github.com/aardvark-platform/aardvark.build/actions/workflows/pack.yml)
+[![Nuget](https://img.shields.io/nuget/vpre/aardvark.build)](https://www.nuget.org/packages/aardvark.build/)
+[![Downloads](https://img.shields.io/nuget/dt/aardvark.build)](https://www.nuget.org/packages/aardvark.build/)
 
 MSBuild tasks for the Aardvark platform that automate versioning, native dependency management, and cross-repository development workflows.
 
@@ -142,16 +142,20 @@ dotnet tool restore       # for other developers
 aardpack [options] <solution/project files>
 ```
 
-Key options:
+Options:
 | Option | Description |
 |--------|-------------|
-| `--version` | Show version and exit |
-| `--parse-only` | Extract version from release notes (returns `0.0.0.0` on failure) |
-| `--configuration` | Build configuration (default: Release) |
-| `--output <dir>` | Package output directory (default: `bin/pack`) |
-| `--no-release` | Skip GitHub release creation |
-| `--dry-run` | Simulate operations without executing |
-| `--per-project` | Create individual releases per project |
+| `--version` | Show version and exit. |
+| `--parse-only` | Extract version from release notes (returns `0.0.0.0` on failure). |
+| `--configuration <config>` | Build configuration (default: Release). |
+| `--release-notes <file>` | Path to the release notes file to use for all targets. If omitted, the release notes file is located automatically. |
+| `--output <dir>` | Package output directory (default: `bin/pack`). |
+| `--no-build` | Skip the build and pack steps. The files in arguments will be added to the Github release directly. |
+| `--skip-build` | Skip the build step but create packages normally in contrast to `--no-build`. |
+| `--no-release` | Skip GitHub release creation. |
+| `--no-tag` | Do not create a Git tag. Note that this option only has an effect in conjunction with `--no-release` as a tag will be created for each release. |
+| `--dry-run` | Simulate operations without executing. |
+| `--per-project` | Create a tag and release for each project and package. E.g., Aardvark.Base.csproj results in a tag `aardvark.base/1.2.3.4` and release titled `Aardvark.Base - 1.2.3.4`. |
 
 ### GitHub Actions Integration
 
