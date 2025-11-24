@@ -1,3 +1,6 @@
+### 2.0.6
+- [aardpack] Use `--minimum-from-lock-file` to avoid versioning issues
+
 ### 2.0.5
 - Build date is now written to the assembly as metadata attribute with name `BuildDate`
 

@@ -453,6 +453,7 @@ module Program =
                                         interprojectReferencesConstraint = Some interprojectConstraint,
                                         excludedTemplates                = List.ofSeq excludedIds,
                                         specificVersions                 = Map.toList target.ProjectReferences,
+                                        minimumFromLockFile              = true,
                                         ?projectUrl                      = projectUrl
                                     )
 
