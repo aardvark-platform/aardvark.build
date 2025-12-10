@@ -1,3 +1,6 @@
+### 2.0.7
+- [aardpack] Updated Paket for .NET 10 support
+
 ### 2.0.6
 - [aardpack] Use `--minimum-from-lock-file` to avoid versioning issues
 
