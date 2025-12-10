@@ -3,7 +3,7 @@ storage: none
 redirects: off
 source https://api.nuget.org/v3/index.json
 
-nuget FSharp.Core                           >= 8.0.400 lowest_matching: true
+nuget FSharp.Core                           >= 9.0.101 lowest_matching: true
 
 nuget SharpZipLib                           ~> 1.4.2
 
@@ -12,7 +12,7 @@ nuget Fake.DotNet.Cli                       ~> 6.1.3
 nuget Fake.Tools.Git                        ~> 6.1.3
 nuget Fake.Api.GitHub                       ~> 6.1.3
 
-nuget Paket.Core                            ~> 9.0.2
+nuget Paket.Core                            ~> 10.0.0-alpha011
 
 // Tests
 nuget NUnit                                 ~> 3.14.0
