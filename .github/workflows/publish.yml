@@ -12,18 +12,21 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
       - name: Cache .NET packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
       - name: Build
         run: sh ./build.sh
       - name: Test
@@ -34,21 +37,25 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
       - name: Cache .NET packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\.nuget\packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
       - name: Build
         shell: cmd
         run: build.cmd
+
       - name: Test
         run: dotnet test src\Aardvark.Build.sln -c Release --no-build --nologo --logger:"console;verbosity=normal"
 
@@ -57,20 +64,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
       - name: Cache .NET packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
       - name: Build
         run: sh ./build.sh
+
       - name: Test
         run: dotnet test src/Aardvark.Build.sln -c Release --no-build --nologo --logger:"console;verbosity=normal"
 
@@ -81,30 +92,43 @@ jobs:
       - test_mac
       - test_win
       - test_linux
+    permissions:
+      id-token: write # enable GitHub OIDC token issuance for this job
+      contents: write
+      packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
       - name: Cache .NET packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\.nuget\packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/paket.lock') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
       - name: Install Dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+
       - name: Pack
         shell: cmd
         run: pack.cmd
+
       - name: Upload Package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packages
           path: bin\pack
+
+      - name: NuGet login
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: NuGet
-        env:
-          NUGET_KEY: ${{ secrets.NUGET_KEY }}
         shell: cmd
-        run: dotnet nuget push "bin\pack\*.nupkg" -k %NUGET_KEY% -s "https://api.nuget.org/v3/index.json" --skip-duplicate
+        run: dotnet nuget push "bin\pack\*.nupkg" -k ${{steps.login.outputs.NUGET_API_KEY}} -s "https://api.nuget.org/v3/index.json" --skip-duplicate
