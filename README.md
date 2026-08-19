@@ -25,10 +25,11 @@ Add `Aardvark.Build` to your `paket.references`. It's marked as a development de
 
 **Solution:** Parse a single `RELEASE_NOTES.md` file to set all version attributes during build.
 
-Create `RELEASE_NOTES.md` in your repository root:
+Create `RELEASE_NOTES.md` in your repository root. During development, keep preliminary changes as hyphen (`-`) bullets above the first version heading:
+
 ```markdown
-Pending changes (above first version):
-- Work in progress items
+- Work in progress item
+- Another pending item
 
 ### 1.2.3.4-alpha01
 - Added new feature X
@@ -36,6 +37,10 @@ Pending changes (above first version):
 ### 1.2.3.3
 - Fixed critical bug Y
 ```
+
+Preliminary changes are intentionally ignored when selecting the version and when populating package release notes. Do not add a label or an `Unreleased` Markdown heading above them, and do not use `*` bullets for this preliminary block; those forms are not recognized as preliminary changes. When you are ready to release, add a new semantic-version heading and move the pending bullets beneath it.
+
+For the example above, `aardpack --parse-only --release-notes RELEASE_NOTES.md` prints `1.2.3.4-alpha01`.
 
 The latest version automatically becomes:
 - **PackageVersion**: `1.2.3.4-alpha01` (full version for NuGet)

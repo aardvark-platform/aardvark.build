@@ -72,6 +72,8 @@ module BuildTests =
             nuspec |> should contain "<version>9.9.9</version>"
             nuspec |> should contain "<releaseNotes>- Test"
             nuspec |> should contain "- Include ; some ; semicolons"
+            nuspec |> should not' (contain "Work in progress item")
+            nuspec |> should not' (contain "Another pending item")
 
         finally
             if Directory.Exists "pack" then Directory.Delete("pack", true)

@@ -1,5 +1,5 @@
-- Some pending change
-- These notes are ignored
+- Work in progress item
+- Another pending item
 
 ### 9.9.9
 - Test

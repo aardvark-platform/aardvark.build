@@ -57,7 +57,7 @@ module AardpackTests =
         Assert.That(releaseNotesPath, Does.Exist)
 
     [<Test>]
-    let ``[Aardpack] Parse only``() =
+    let ``[Aardpack] Parse only ignores preliminary release notes``() =
         let output = Aardpack.run $"--parse-only --release-notes \"{releaseNotesPath}\""
         output |> should equal "9.9.9"
 
