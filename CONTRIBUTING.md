@@ -102,7 +102,7 @@ Releases are automated via GitHub Actions when `RELEASE_NOTES.md` is updated:
 ## Getting Help
 
 - Check existing issues and discussions on GitHub
-- Review the README.md and CLAUDE.md for project information
+- Review the README.md and AGENTS.md for project information
 - Look at existing code patterns and tests for examples
 
 ## License
