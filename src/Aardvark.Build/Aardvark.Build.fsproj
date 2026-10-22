@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <UseAppHost>False</UseAppHost>
     <RollForward>Major</RollForward>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
     <OutputPath>..\..\bin\$(Configuration)\standalone-tool</OutputPath>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>

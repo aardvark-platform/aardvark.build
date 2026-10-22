@@ -9,13 +9,13 @@ open ICSharpCode.SharpZipLib.Zip
 
 [<Struct; RequireQualifiedAccess>]
 type Framework =
-    | Net8
+    | Net10
     | Net48
     | NetStandard20
 
     override x.ToString() =
         match x with
-        | Framework.Net8 -> "net8.0"
+        | Framework.Net10 -> "net10.0"
         | Framework.Net48 -> "net48"
         | Framework.NetStandard20 -> "netstandard2.0"
 

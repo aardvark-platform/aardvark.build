@@ -5,7 +5,7 @@ Thank you for your interest in contributing to Aardvark.Build! This document pro
 ## Development Setup
 
 ### Prerequisites
-- .NET 8.0 SDK (see `global.json` for exact version)
+- .NET 10.0 SDK (see `global.json` for exact version)
 - Git
 
 ### Getting Started

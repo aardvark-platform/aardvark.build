@@ -1,6 +1,6 @@
 ﻿namespace Aardvark.Build.Tests
 
-#if NET8_0
+#if NET10_0
 open System
 open System.IO
 open System.Runtime.InteropServices
@@ -26,7 +26,7 @@ module AardpackTests =
 
     let aardpackPath =
         let binary = if RuntimeInformation.IsOSPlatform OSPlatform.Windows then "aardpack.exe" else "aardpack"
-        Path.Combine("..", "..", "aardpack", "net8.0", binary)
+        Path.Combine("..", "..", "aardpack", "net10.0", binary)
 
     let releaseNotesPath =
         Path.Combine(__SOURCE_DIRECTORY__, "..", "TestApp", "RELEASE_NOTES.md")

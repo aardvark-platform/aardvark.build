@@ -4,4 +4,4 @@ dotnet paket restore
 # Build Debug first, which is used for the Release build-
 dotnet build -c Debug src/Aardvark.Build/Aardvark.Build.fsproj
 dotnet build -c Release src/Aardvark.Build/Aardvark.Build.fsproj
-dotnet build -c Release src/Aardvark.Build.sln
+dotnet build -c Release -m:1 src/Aardvark.Build.sln

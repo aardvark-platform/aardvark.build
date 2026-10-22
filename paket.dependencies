@@ -1,18 +1,18 @@
-framework: netstandard2.0, net8.0, net48
+framework: netstandard2.0, net10.0, net48
 storage: none
 redirects: off
 source https://api.nuget.org/v3/index.json
 
-nuget FSharp.Core                           >= 9.0.101 lowest_matching: true
+nuget FSharp.Core                           >= 10.0.100 lowest_matching: true
 
 nuget SharpZipLib                           ~> 1.4.2
 
-nuget Fake.Core.ReleaseNotes                ~> 6.1.3
-nuget Fake.DotNet.Cli                       ~> 6.1.3
-nuget Fake.Tools.Git                        ~> 6.1.3
-nuget Fake.Api.GitHub                       ~> 6.1.3
+nuget Fake.Core.ReleaseNotes                ~> 6.2.0
+nuget Fake.DotNet.Cli                       ~> 6.2.0
+nuget Fake.Tools.Git                        ~> 6.2.0
+nuget Fake.Api.GitHub                       ~> 6.2.0
 
-nuget Paket.Core                            ~> 10.0.0-alpha011
+nuget Paket.Core                            ~> 10.3.1
 
 // Tests
 nuget NUnit                                 ~> 3.14.0

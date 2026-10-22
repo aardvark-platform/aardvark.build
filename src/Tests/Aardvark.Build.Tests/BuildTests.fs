@@ -13,8 +13,8 @@ open ICSharpCode.SharpZipLib.Zip
 module BuildTests =
 
     let framework =
-#if NET8_0
-        Framework.Net8
+#if NET10_0
+        Framework.Net10
 #else
         Framework.Net48
 #endif
@@ -24,7 +24,7 @@ module BuildTests =
     [<OneTimeSetUp>]
     let Build() =
         let srcRoot = Path.Combine(__SOURCE_DIRECTORY__, "..", "..")
-        DotNet.build Framework.Net8 <| Path.Combine(srcRoot, "Aardvark.Build", "Aardvark.Build.fsproj")
+        DotNet.build Framework.Net10 <| Path.Combine(srcRoot, "Aardvark.Build", "Aardvark.Build.fsproj")
         DotNet.build framework <| Path.Combine(srcRoot, "Tests", "TestApp", "TestApp.fsproj")
 
         let assemblyName =
@@ -69,13 +69,13 @@ module BuildTests =
 
         try
             if RuntimeInformation.IsOSPlatform OSPlatform.Windows then
-                let otherFramework = if framework = Framework.Net8 then Framework.Net48 else Framework.Net8
+                let otherFramework = if framework = Framework.Net10 then Framework.Net48 else Framework.Net10
                 DotNet.build otherFramework fsproj // Setup method builds the current framework
 
             DotNet.pack fsproj
 
             use zip = new ZipFile(Path.Combine("pack", "TestApp.9.9.9.nupkg"))
-            zip.GetEntry("lib/net8.0/TestApp.dll") |> should not' (equal null)
+            zip.GetEntry("lib/net10.0/TestApp.dll") |> should not' (equal null)
 
             if RuntimeInformation.IsOSPlatform OSPlatform.Windows then
                 zip.GetEntry("lib/net48/TestApp.exe") |> should not' (equal null)
